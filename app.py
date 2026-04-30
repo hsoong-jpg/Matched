@@ -25,3 +25,25 @@ def index():
     
     #Trender_template("index.html") Go find a file called index.html in the templates folder and show it in the browser
     return render_template("index.html", profile = profiles[current_index])
+
+
+@app.route("/like", methods=["POST"])
+def like():
+    global current_index
+    profile = profiles[current_index]
+    likes.append(profile)
+    current_index += 1
+    return redirect("/")
+
+@app.route("/pass", methods=["POST"])
+def skip():
+    global current_index
+    current_index += 1
+    return redirect("/")
+
+@app.route("/likes")
+def show_likes():
+    return {"liked_profiles": likes}
+
+if __name__ == "__main__":
+    app.run(debug=True)
