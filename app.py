@@ -149,7 +149,7 @@ def skip():
 
 
 # ----------------------------
-# VIEW LIKES (NOW FROM DB)
+# VIEW LIKES 
 # ----------------------------
 
 @app.route("/likes")
