@@ -1,10 +1,13 @@
 # Flask creates web app, render_template sends HTML to browser, request reads user actions
 #redirect sends users to another page, sqlite3 ability to use database
-from flask import Flask, render_template, request, redirect
+#session remebers who is logged in
+from flask import Flask, render_template, request, redirect, session
 import sqlite3
 
 #creates app
 app = Flask(__name__)
+#enables sessions 
+app.secret_key = "your_secret_key"
 
 #tracks what profile user is viewing
 current_index = 0
@@ -74,6 +77,65 @@ def seed_profiles():
     conn.commit()
     conn.close()
 
+# ----------------------------
+# SIGNUP
+# ----------------------------
+# Get = show page 
+@app.route("/signup", methods = ["GET", "POST"])
+def signup():
+    #if user clicked create account
+    if request.method == "POST":
+        username = request.form["username"]
+        password = request.form["password"]
+        #connects to database
+        conn = sqlite3.connect("database.db")
+        cursor = conn.cursor()
+        #inserts new user 
+        cursor.execute(
+    "INSERT INTO users (username, password) VALUES (?, ?)",
+    (username, password)
+)
+        conn.commit()
+        conn.close()
+        #sends user back to login page after signing up
+        return redirect("/login")
+    #show sign up page if not POST
+    return render_template("signup.html")
+        
+
+# ----------------------------
+# LOGIN
+# ----------------------------
+@app.route("/login", methods = ["GET", "POST"])
+def login():
+    #if user clicks login button
+    if request.method == "POST":
+        username = request.form["username"]
+        password = request.form["password"]
+        conn = sqlite3.connect("database.db")
+        cursor = conn.cursor()
+        #Asks if there is a user name with this username and password
+        cursor.execute(
+            "SELECT id FROM users WHERE username=? AND password=?",
+            (username,password)
+        )
+        #gets result from execute
+        user = cursor.fetchone()
+        conn.close()
+        #if user exists
+        if user:
+            #store user ID in memory
+            session["user_id"] = user[0]
+            #send user to homepage
+            return redirect("/")
+        #show error message
+        else: 
+            return "Invalid login"
+        #if just opening page 
+    return render_template("login.html")
+
+
+
 
 # ----------------------------
 # HOMEPAGE
@@ -81,30 +143,10 @@ def seed_profiles():
 #when user visits / this runs
 @app.route("/")
 def index():
-    #use shared variable
-    global current_index
-    #connect to database
-    conn = sqlite3.connect("database.db")
-    cursor = conn.cursor()
-    #Get all profiles and returns list
-    cursor.execute("SELECT * FROM profiles")
-    profiles = cursor.fetchall()
-
-    conn.close()
-    #stops if user reaches end
-    if current_index >= len(profiles):
-        return "No more profiles"
-    #gets current profile
-    profile = profiles[current_index]
-    #converts tuple to a dictonary so HTML can use it
-    return render_template(
-        "index.html",
-        profile={
-            "id": profile[0],
-            "name": profile[1],
-            "bio": profile[2]
-        }
-    )
+    if "user_id" not in session:
+        return redirect("/login") 
+    #if they are logged in
+    return render_template("index.html")
 
 
 # ----------------------------
@@ -114,6 +156,7 @@ def index():
 @app.route("/like", methods=["POST"])
 def like():
     global current_index
+    user_id = session["user_id"]
 
     conn = sqlite3.connect("database.db")
     cursor = conn.cursor()
@@ -127,7 +170,7 @@ def like():
         #saves the like into database
         cursor.execute(
             "INSERT INTO likes (user_id, liked_profile_id) VALUES (?, ?)", #inserts new row into likes table
-            (1, profile[0])  # user 1 liked profile[id]
+            (user_id, profile[0])  # user liked profile[id]
         )
 
     conn.commit()
