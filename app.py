@@ -60,13 +60,13 @@ def init_db():
 def seed_profiles():
     conn = sqlite3.connect("database.db")
     cursor = conn.cursor()
-    #counts how many profiles exist
+    #counts how many profiles exist and returns as tuple
     cursor.execute("SELECT COUNT(*) FROM profiles")
-    #gets result and extracts number
+    #take the first value in the tuple so count is normal number
     count = cursor.fetchone()[0]
     #only insert profiles if table is empty
     if count == 0:
-        #adds row to database
+        #adds rows to database
         cursor.execute("INSERT INTO profiles (name, bio) VALUES ('Alice', 'Loves hiking')")
         cursor.execute("INSERT INTO profiles (name, bio) VALUES ('Bob', 'Coffee addict')")
         cursor.execute("INSERT INTO profiles (name, bio) VALUES ('Charlie', 'Tech nerd')")
