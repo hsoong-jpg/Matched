@@ -1,8 +1,26 @@
-#Take profile and get name and display
-<h1>{{ profile.name }}</h1>
-#Take profile and get bio and display
-<p>{{ profile.bio }}</p>
+<!-- html page --> 
+<!DOCTYPE html>
+<!-- starts html webpage --> 
+<html>
+    <!-- info about page --> 
+<head>
+    <!-- text shown on page --> 
+    <title>Matched</title>
+</head>
+<!-- everything inside of body is what user sees  --> 
+<body>
+<!-- {{}} means insert python data here --> 
+    <h1>{{ profile.name }}</h1>
+    <p>{{ profile.bio }}</p>
+<!-- form = way to send data to server, /like is go to like route and post is used for actions like liking --> 
+    <form action="/like" method="post">
+        <button type="submit">Like ❤️</button>
+    </form>
 
-<form action="/like" method="post">
-    <button type="submit">Like ❤️</button>
-</form>
+    <form action="/pass" method="post">
+        <button type="submit">Pass ❌</button>
+    </form>
+<!-- ends visible content --> 
+</body>
+<!-- end of webpage --> 
+</html>
