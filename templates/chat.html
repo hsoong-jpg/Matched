@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chat</title>
+
+    <style>
+        body {
+            font-family: Arial;
+            background: #f2f2f2;
+            padding: 20px;
+        }
+
+        .chat-box {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            max-width: 500px;
+            margin: auto;
+            height: 400px;
+            overflow-y: scroll;
+        }
+
+        .msg {
+            margin: 10px 0;
+        }
+
+        .me {
+            text-align: right;
+            color: blue;
+        }
+
+        .them {
+            text-align: left;
+            color: green;
+        }
+
+        form {
+            display: flex;
+            margin-top: 10px;
+            max-width: 500px;
+            margin: auto;
+        }
+
+        input {
+            flex: 1;
+            padding: 10px;
+        }
+
+        button {
+            padding: 10px;
+        }
+    </style>
+</head>
+
+<body>
+
+<h2 style="text-align:center;">Chat</h2>
+
+<div class="chat-box">
+
+    {% for m in messages %}
+
+        <div class="msg {% if m[0] == session['user_id'] %}me{% else %}them{% endif %}">
+            {{ m[2] }}
+        </div>
+
+    {% endfor %}
+
+</div>
+
+<form method="POST" action="/send_message/{{ user2_id }}">
+    <input name="message" placeholder="Type message..." required>
+    <button>Send</button>
+</form>
+
+</body>
+</html>

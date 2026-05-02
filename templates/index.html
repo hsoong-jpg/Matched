@@ -2,104 +2,84 @@
 <html>
 
 <head>
-    <!-- Title shown in browser tab -->
     <title>Swipe App</title>
 
     <style>
-        /* ----------------------------
-           PAGE LAYOUT (CENTER CARD)
-        ---------------------------- */
-
         body {
-            font-family: Arial; /* sets readable font */
-            background: #f2f2f2; /* light gray background */
-            
-            /* centers the card horizontally + vertically */
+            font-family: Arial;
+            background: #f2f2f2;
+
             display: flex;
             justify-content: center;
             align-items: center;
 
-            height: 100vh; /* full screen height */
+            height: 100vh;
             margin: 0;
         }
 
-        /* ----------------------------
-           MAIN PROFILE CARD
-        ---------------------------- */
-
+        /* MAIN PROFILE CARD */
         .card {
-            background: white; /* card color */
-            width: 300px; /* fixed width */
-            padding: 20px; /* space inside card */
+            background: white;
+            width: 320px;
+            padding: 20px;
 
-            border-radius: 12px; /* rounded corners */
+            border-radius: 12px;
+            text-align: center;
 
-            text-align: center; /* center text inside */
-
-            /* shadow makes it look like a floating card */
             box-shadow: 0px 5px 15px rgba(0,0,0,0.2);
         }
 
-        /* NAME STYLE */
+        /* NAME */
         .name {
-            font-size: 24px; /* big text */
-            font-weight: bold; /* thick text */
+            font-size: 24px;
+            font-weight: bold;
         }
 
-        /* BIO STYLE */
-        .bio {
-            margin-top: 10px; /* space above bio */
-            color: gray; /* softer text color */
+        /* INFO TEXT */
+        .info {
+            margin-top: 8px;
+            color: #444;
         }
 
-        /* ----------------------------
-           BUTTON AREA (LIKE / PASS)
-        ---------------------------- */
-
+        /* BUTTON CONTAINER */
         .buttons {
-            margin-top: 20px; /* space above buttons */
-
-            display: flex; /* puts buttons side-by-side */
-            justify-content: space-between; /* spreads them apart */
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
         }
 
-        /* ALL BUTTONS */
-      button {
-    width: 48%;
-    padding: 14px 0;   /* taller button */
-    border: none;
-    border-radius: 10px;
+        button {
+            flex: 1;
+            padding: 14px;
 
-    font-size: 18px;   /* bigger text */
-    font-weight: bold;
+            font-size: 18px;
+            font-weight: bold;
 
-    cursor: pointer;
-}
+            border: none;
+            border-radius: 10px;
 
-        /* GREEN LIKE BUTTON */
+            cursor: pointer;
+        }
+
         .like {
-            background: #4CAF50; /* green */
-            color: white; /* white text */
-        }
-
-        /* RED PASS BUTTON */
-        .pass {
-            background: #f44336; /* red */
+            background: #4CAF50;
             color: white;
         }
 
-        /* ----------------------------
-           TOP NAVIGATION LINKS
-        ---------------------------- */
+        .pass {
+            background: #f44336;
+            color: white;
+        }
 
+        /* NAV LINKS */
         .nav {
-            position: absolute; /* floats at top of page */
+            position: absolute;
             top: 20px;
         }
 
         .nav a {
-            margin: 10px; /* space between links */
-            text-decoration: none; /* removes underline */
+            margin: 10px;
+            text-decoration: none;
             color: black;
         }
     </style>
@@ -107,55 +87,52 @@
 
 <body>
 
-    <!-- ----------------------------
-         NAVIGATION BAR
-         (links to other pages)
-    ---------------------------- -->
-    <div class="nav">
-        <a href="/matches">Matches</a>
-        <a href="/likes">Likes</a>
-        <a href="/logout">Logout</a>
+<!-- NAVIGATION -->
+<div class="nav">
+    <a href="/matches">Matches</a>
+    <a href="/likes">Likes</a>
+    <a href="/logout">Logout</a>
+</div>
+
+<!-- PROFILE CARD -->
+<div class="card">
+
+    <!-- NAME -->
+    <div class="name">
+        {{ profile.name }}
     </div>
 
-    <!-- ----------------------------
-         PROFILE CARD
-         This is the current user shown from Flask
-    ---------------------------- -->
-    <div class="card">
+    <!-- gENDER -->
+    <div class="info">
+        gender: {{ profile.gender }}
+    </div>
 
-        <!-- NAME from Flask backend -->
-        <div class="name">
-            {{ profile.name }}
-        </div>
+    <!-- UTR -->
+    <div class="info">
+        utr: {{ profile.utr }}
+    </div>
 
-        <!-- BIO from Flask backend -->
-        <div class="bio">
-            {{ profile.bio }}
-        </div>
+    <!-- BIO -->
+    <div class="info">
+        Bio: {{ profile.bio }}
+    </div>
 
-        <!-- ----------------------------
-             ACTION BUTTONS
-             These send POST requests to Flask
-        ---------------------------- -->
-        <div class="buttons">
+  
 
-            <!-- PASS FORM -->
-            <form action="/pass" method="POST">
-                <button class="pass">
-                    Pass
-                </button>
-            </form>
+    <!-- BUTTONS -->
+    <div class="buttons">
 
-            <!-- LIKE FORM -->
-            <form action="/like" method="POST">
-                <button class="like">
-                    Like
-                </button>
-            </form>
+        <form action="/pass" method="POST">
+            <button class="pass">Pass</button>
+        </form>
 
-        </div>
+        <form action="/like" method="POST">
+            <button class="like">Like</button>
+        </form>
 
     </div>
+
+</div>
 
 </body>
 </html>
