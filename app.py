@@ -190,7 +190,8 @@ def index():
     idx = session.get("index", 0)
 
     if len(profiles) == 0:
-        return "No more profiles"
+        return render_template("index.html, no_profiles=True")
+    
 
     if idx >= len(profiles):
         session["index"] = 0
@@ -204,7 +205,8 @@ def index():
         "gender": profile[3],
         "utr": profile[4],
         "bio": profile[5]
-    })
+    },
+    no_profiles=False)
 
 
 # ----------------------------
@@ -372,3 +374,4 @@ def send_message(user2_id):
 if __name__ == "__main__":
     init_db()
     app.run(debug=True)
+    
