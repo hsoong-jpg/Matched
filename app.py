@@ -1,28 +1,29 @@
-# Flask creates web app, render_template sends HTML to browser, request reads user actions
-#redirect sends users to another page, sqlite3 ability to use database
-#session remebers who is logged in
+# Flask = web framework
+# render_template = sends HTML files to browser
+# request = reads form data (what user types)
+# redirect = sends user to another page
+# session = remembers logged-in user
 from flask import Flask, render_template, request, redirect, session
 import sqlite3
 
-#creates app
+# ----------------------------
+# CREATE APP
+# ----------------------------
 app = Flask(__name__)
-#enables sessions 
+
+# secret key is required for sessions (login system)
 app.secret_key = "your_secret_key"
 
-#tracks what profile user is viewing
-current_index = 0
 
 # ----------------------------
 # DATABASE SETUP
 # ----------------------------
-
-#Function that creates database tables 
 def init_db():
-    #opens or creates a file called database.db
+    # connect to database file (creates it if it doesn't exist)
     conn = sqlite3.connect("database.db")
-    #cursor is a tool to run SQL 
     cursor = conn.cursor()
-    #Creates table called users
+
+    # USERS table (login system)
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -30,9 +31,8 @@ def init_db():
             password TEXT
         )
     """)
-    #creates a table called profiles
-    #id = unique number for each row, int, 
-    # primary key (main identifier) and autoincrement is automaticlaly increases
+
+    # PROFILES table (what users see in feed)
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS profiles (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -41,9 +41,8 @@ def init_db():
             bio TEXT
         )
     """)
-    #stores likes
-    #user_id = the user who liked id
-    #liked_profile_id is the profile that got liked id
+
+    # LIKES table (who liked who)
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS likes (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -51,217 +50,263 @@ def init_db():
             liked_profile_id INTEGER
         )
     """)
-#stores a matches table 
 
+    # MATCHES table (mutual likes)
     cursor.execute("""
-    CREATE TABLE IF NOT EXISTS matches (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user1_id INTEGER,
-        user2_id INTEGER
-    )
-""")
-    
-    #saves changed to database
+        CREATE TABLE IF NOT EXISTS matches (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user1_id INTEGER,
+            user2_id INTEGER
+        )
+    """)
+
+    # save changes
     conn.commit()
-    #closes database connection
     conn.close()
 
 
 # ----------------------------
-# ADD SAMPLE DATA 
+# SAMPLE DATA (ONLY ONCE)
 # ----------------------------
-
 def seed_profiles():
     conn = sqlite3.connect("database.db")
     cursor = conn.cursor()
-    #counts how many profiles exist and returns as tuple
+
+    # check if profiles already exist
     cursor.execute("SELECT COUNT(*) FROM profiles")
-    #take the first value in the tuple so count is normal number
     count = cursor.fetchone()[0]
-    #only insert profiles if table is empty
+
+    # only add sample data if database is empty
     if count == 0:
-        #adds rows to database
-        cursor.execute("INSERT INTO profiles (name, bio) VALUES ('Alice', 'Loves hiking')")
-        cursor.execute("INSERT INTO profiles (name, bio) VALUES ('Bob', 'Coffee addict')")
-        cursor.execute("INSERT INTO profiles (name, bio) VALUES ('Charlie', 'Tech nerd')")
+        cursor.execute("INSERT INTO profiles (user_id, name, bio) VALUES (1, 'Alice', 'Loves hiking')")
+        cursor.execute("INSERT INTO profiles (user_id, name, bio) VALUES (2, 'Bob', 'Coffee addict')")
+        cursor.execute("INSERT INTO profiles (user_id, name, bio) VALUES (3, 'Charlie', 'Tech nerd')")
 
     conn.commit()
     conn.close()
 
+
 # ----------------------------
-# SIGNUP
+# HELPER FUNCTION
 # ----------------------------
-# Get = show page 
+# gets all profiles except current user
+def get_profiles(user_id):
+    conn = sqlite3.connect("database.db")
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT * FROM profiles
+        WHERE user_id != ?
+    """, (user_id,))
+
+    profiles = cursor.fetchall()
+    conn.close()
+    return profiles
+
+
+# ----------------------------
+# SIGNUP PAGE
+# ----------------------------
 @app.route("/signup", methods=["GET", "POST"])
 def signup():
 
+    # if user submits form
     if request.method == "POST":
         username = request.form["username"]
         password = request.form["password"]
 
-        # connect to database
         conn = sqlite3.connect("database.db")
         cursor = conn.cursor()
 
-        # insert user
+        # create user account
         cursor.execute(
             "INSERT INTO users (username, password) VALUES (?, ?)",
             (username, password)
         )
 
-        # get new user's id
+        # get new user ID
         user_id = cursor.lastrowid
 
-        # create profile for that user
+        # automatically create a profile for that user
         cursor.execute(
             "INSERT INTO profiles (user_id, name, bio) VALUES (?, ?, ?)",
             (user_id, username, "New user!")
         )
 
-        # save and close
         conn.commit()
         conn.close()
 
-        # redirect to login
+        # send user to login page
         return redirect("/login")
 
     # show signup page
     return render_template("signup.html")
 
+
 # ----------------------------
-# LOGIN
+# LOGIN PAGE
 # ----------------------------
-@app.route("/login", methods = ["GET", "POST"])
+@app.route("/login", methods=["GET", "POST"])
 def login():
-    #if user clicks login button
+
     if request.method == "POST":
         username = request.form["username"]
         password = request.form["password"]
+
         conn = sqlite3.connect("database.db")
         cursor = conn.cursor()
-        #Asks if there is a user name with this username and password
+
+        # check if user exists
         cursor.execute(
             "SELECT id FROM users WHERE username=? AND password=?",
-            (username,password)
+            (username, password)
         )
-        #gets result from execute
+
         user = cursor.fetchone()
         conn.close()
-        #if user exists
+
         if user:
-            #store user ID in memory
+            # store user in session (keeps them logged in)
             session["user_id"] = user[0]
-            #send user to homepage
+
+            # reset feed index
+            session["index"] = 0
+
             return redirect("/")
-        #show error message
-        else: 
+        else:
             return "Invalid login"
-        #if just opening page 
+
     return render_template("login.html")
+
 
 # ----------------------------
 # LOGOUT
 # ----------------------------
 @app.route("/logout")
 def logout():
-    #clears who is logged in
+    # clears session (logs user out)
     session.clear()
     return redirect("/login")
 
+
 # ----------------------------
-# HOMEPAGE
+# HOMEPAGE (FEED)
 # ----------------------------
-#when user visits / this runs
 @app.route("/")
 def index():
+
+    # must be logged in
     if "user_id" not in session:
-        return redirect("/login") 
-    
-    #get users own index 
+        return redirect("/login")
+
+    user_id = session["user_id"]
+
+    # create index if it doesn't exist
     if "index" not in session:
         session["index"] = 0
-    #connect to database
-    conn = sqlite3.connect("database.db")
-    cursor = conn.cursor()
-    #Get all profiles
-    user_id = session["user_id"]
-    cursor.execute("""
-                   SELECT * FROM profiles
-                   WHERE user_id = ?
-                   """, (user_id,))
-    profiles = cursor.fetchall()
-    conn.close()
-    #if you run out of profiles 
-    if current_index >=len(profiles):
+
+    # get all other profiles
+    profiles = get_profiles(user_id)
+
+    idx = session["index"]
+
+    # if no more profiles left
+    if idx >= len(profiles):
         return "No more profiles"
 
-    #pick current profile 
-    profile = profiles[current_index]
+    profile = profiles[idx]
 
-    #Send to HTML in correct format 
+    # send current profile to HTML
     return render_template(
         "index.html",
         profile={
-            "id" : profile[0],
-            "name" : profile[1],
-            "bio": profile[2]
-
+            "id": profile[0],
+            "name": profile[2],
+            "bio": profile[3]
         }
     )
 
 
 # ----------------------------
-# LIKE
+# LIKE BUTTON
 # ----------------------------
-#methods allows this to run when user clicks like
 @app.route("/like", methods=["POST"])
 def like():
+
     if "user_id" not in session:
-        return redirect("/login") 
-    
-    #get users own index 
-    if "index" not in session:
-        session["index"] = 0
-    
+        return redirect("/login")
+
     user_id = session["user_id"]
-    current_index = session["index"]
+    idx = session.get("index", 0)
 
     conn = sqlite3.connect("database.db")
     cursor = conn.cursor()
 
-    cursor.execute("SELECT * FROM profiles")
-    profiles = cursor.fetchall()
-    # prevent crash if index is too big
-    if current_index < len(profiles):
-        #gets current profile
-        profile = profiles[current_index]
-        #saves the like into database
-        cursor.execute(
-            "INSERT INTO likes (user_id, liked_profile_id) VALUES (?, ?)", #inserts new row into likes table
-            (user_id, profile[0])  # user liked profile[id]
-        )
-        #check if the other user already liked this user
-        other_user_id = profile[1]  # because profile = (id, user_id, name, bio)
+    profiles = get_profiles(user_id)
 
-    cursor.execute("""
-    SELECT * FROM likes
-    WHERE user_id = ? AND liked_profile_id = ?
-""", (other_user_id, user_id))
-    match = cursor.fetchone()
+    # make sure index is valid
+    if idx < len(profiles):
 
-    if match:
-            cursor.execute(
-                "INSERT INTO matches (user1_id, user2_id) VALUES (?,?)",
-                (user_id, profile[0])
-            )
+        profile = profiles[idx]
+        profile_id = profile[0]
+        other_user_id = profile[1]
+
+        # ----------------------------
+        # SAVE LIKE
+        # ----------------------------
+        cursor.execute("""
+            SELECT * FROM likes
+            WHERE user_id=? AND liked_profile_id=?
+        """, (user_id, profile_id))
+
+        already_liked = cursor.fetchone()
+
+        # only insert if not already liked
+        if not already_liked:
+            cursor.execute("""
+                INSERT INTO likes (user_id, liked_profile_id)
+                VALUES (?, ?)
+            """, (user_id, profile_id))
+
+        # ----------------------------
+        # CHECK MATCH
+        # ----------------------------
+        cursor.execute("""
+            SELECT * FROM likes
+            WHERE user_id=? AND liked_profile_id=?
+        """, (other_user_id, user_id))
+
+        match = cursor.fetchone()
+
+        # if both users liked each other → match
+        if match:
+            cursor.execute("""
+                INSERT INTO matches (user1_id, user2_id)
+                VALUES (?, ?)
+            """, (user_id, profile_id))
+
+        # move to next profile
+        session["index"] += 1
 
     conn.commit()
     conn.close()
-    #move to next profile
-    current_index += 1
+
     return redirect("/")
+
+
 # ----------------------------
-# MATCHES
+# PASS BUTTON
+# ----------------------------
+@app.route("/pass", methods=["POST"])
+def skip():
+
+    # just move to next profile
+    session["index"] = session.get("index", 0) + 1
+    return redirect("/")
+
+
+# ----------------------------
+# MATCHES PAGE
 # ----------------------------
 @app.route("/matches")
 def show_matches():
@@ -274,6 +319,7 @@ def show_matches():
     conn = sqlite3.connect("database.db")
     cursor = conn.cursor()
 
+    # get all matches for this user
     cursor.execute("""
         SELECT profiles.name, profiles.bio
         FROM matches
@@ -284,64 +330,46 @@ def show_matches():
     matches = cursor.fetchall()
     conn.close()
 
-    result = []
-    for m in matches:
-        result.append({"name": m[0], "bio": m[1]})
+    # convert to clean format for HTML
+    result = [{"name": m[0], "bio": m[1]} for m in matches]
 
     return render_template("matches.html", profiles=result)
-# ----------------------------
-# PASS
-# ----------------------------
-
-@app.route("/pass", methods=["POST"])
-def skip():
-    if "index" not in session:
-        session["index"] = 0
-    session["index"] +=1
-    return redirect("/")
 
 
 # ----------------------------
-# VIEW LIKES 
+# LIKES PAGE
 # ----------------------------
-
 @app.route("/likes")
 def show_likes():
-    conn = sqlite3.connect("database.db")
-    cursor = conn.cursor()
+
+    if "user_id" not in session:
+        return redirect("/login")
+
     user_id = session["user_id"]
 
-    #Gets the name and bio of all profiles user liked
-    # select = these columns 
-    # from = from likes table
-    # join = connects liked_profile_id and id to combine data 
-    # where = what user likes  
+    conn = sqlite3.connect("database.db")
+    cursor = conn.cursor()
+
+    # get all profiles user liked
     cursor.execute("""
         SELECT profiles.name, profiles.bio
         FROM likes
-        JOIN profiles On likes.liked_profile_id = profiles.id
+        JOIN profiles ON likes.liked_profile_id = profiles.id
         WHERE likes.user_id = ?
     """, (user_id,))
 
-    liked_profiles = cursor.fetchall()
-
+    likes = cursor.fetchall()
     conn.close()
 
-    
-    result = []
-    for p in liked_profiles:
-        result.append({"name": p[0], "bio": p[1]})
-    #returns JSON
+    result = [{"name": l[0], "bio": l[1]} for l in likes]
+
     return render_template("likes.html", profiles=result)
 
 
 # ----------------------------
-# RUN APP
+# RUN SERVER
 # ----------------------------
-
 if __name__ == "__main__":
-    #Create tables and add data
-    init_db()
-    seed_profiles()
-    #start server 
+    init_db()        # create tables
+    seed_profiles()  # add sample data
     app.run(debug=True)
