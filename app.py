@@ -92,37 +92,41 @@ def seed_profiles():
 # SIGNUP
 # ----------------------------
 # Get = show page 
-@app.route("/signup", methods = ["GET", "POST"])
+@app.route("/signup", methods=["GET", "POST"])
 def signup():
-    #if user clicked create account
+
     if request.method == "POST":
         username = request.form["username"]
         password = request.form["password"]
-        #connects to database
+
+        # connect to database
         conn = sqlite3.connect("database.db")
         cursor = conn.cursor()
-        #inserts new user 
+
         # insert user
-    cursor.execute(
-    "INSERT INTO users (username, password) VALUES (?, ?)",
-    (username, password)
-)
+        cursor.execute(
+            "INSERT INTO users (username, password) VALUES (?, ?)",
+            (username, password)
+        )
 
-# get new user's id
-    user_id = cursor.lastrowid
+        # get new user's id
+        user_id = cursor.lastrowid
 
-# create profile for that user
-    cursor.execute(
-    "INSERT INTO profiles (user_id, name, bio) VALUES (?, ?, ?)",
-    (user_id, username, "New user!")
-)
-    conn.commit()
-    conn.close()
-        #sends user back to login page after signing up
+        # create profile for that user
+        cursor.execute(
+            "INSERT INTO profiles (user_id, name, bio) VALUES (?, ?, ?)",
+            (user_id, username, "New user!")
+        )
+
+        # save and close
+        conn.commit()
+        conn.close()
+
+        # redirect to login
         return redirect("/login")
-    #show sign up page if not POST
+
+    # show signup page
     return render_template("signup.html")
-        
 
 # ----------------------------
 # LOGIN
