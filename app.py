@@ -54,11 +54,20 @@ def init_db():
     # MATCHES table (mutual likes)
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS matches (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user1_id INTEGER,
-            user2_id INTEGER
-        )
-    """)
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user1_id INTEGER,
+        user2_id INTEGER,
+        UNIQUE(user1_id, user2_id)
+)
+""")
+    # seen users table
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS seen_users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER,
+        seen_profile_id INTEGER
+    )
+""")
 
     # save changes
     conn.commit()
@@ -206,8 +215,9 @@ def index():
         session["index"] = 0
 
     # get all other profiles
-    profiles = get_profiles(user_id)
+    profiles = get_unseen_profiles(user_id)
 
+    #which profile the user is current viewing
     idx = session["index"]
 
     # if no more profiles left
@@ -268,25 +278,35 @@ def like():
                 VALUES (?, ?)
             """, (user_id, profile_id))
 
+        cursor.execute("""
+    INSERT INTO seen_users (user_id, seen_profile_id)
+    VALUES (?, ?)
+""", (user_id, profile_id))
+
         # ----------------------------
         # CHECK MATCH
         # ----------------------------
-        cursor.execute("""
-            SELECT * FROM likes
-            WHERE user_id=? AND liked_profile_id=?
-        """, (other_user_id, user_id))
+        # check if other user already liked me
+    cursor.execute("""
+    SELECT * FROM likes
+    WHERE user_id=? AND liked_profile_id=?
+""", (other_user_id, user_id))
 
-        match = cursor.fetchone()
+    match = cursor.fetchone()
 
-        # if both users liked each other → match
-        if match:
-            cursor.execute("""
-                INSERT INTO matches (user1_id, user2_id)
-                VALUES (?, ?)
-            """, (user_id, profile_id))
+    if match:
+    # normalize order so duplicates never happen
+        user1 = min(user_id, other_user_id)
+        user2 = max(user_id, other_user_id)
+
+    # insert match safely
+    cursor.execute("""
+        INSERT OR IGNORE INTO matches (user1_id, user2_id)
+        VALUES (?, ?)
+    """, (user1, user2))
 
         # move to next profile
-        session["index"] += 1
+    session["index"] += 1
 
     conn.commit()
     conn.close()
@@ -358,6 +378,7 @@ def show_likes():
         WHERE likes.user_id = ?
     """, (user_id,))
 
+    
     likes = cursor.fetchall()
     conn.close()
 
@@ -365,6 +386,79 @@ def show_likes():
 
     return render_template("likes.html", profiles=result)
 
+# ----------------------------
+# FITLER UNSEEN PROFILES
+# ----------------------------
+def get_unseen_profiles(user_id):
+    conn = sqlite3.connect("database.db")
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT * FROM profiles
+        WHERE user_id != ?
+        AND id NOT IN (
+            SELECT liked_profile_id FROM likes WHERE user_id = ?
+        )
+    """, (user_id, user_id))
+
+    profiles = cursor.fetchall()
+    conn.close()
+
+    return profiles
+
+# ----------------------------
+# GET UNSEEN PROFILES
+# ----------------------------
+
+def get_unseen_profiles(user_id):
+    conn = sqlite3.connect("database.db")
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT * FROM profiles
+        WHERE user_id != ?
+        AND id NOT IN (
+            SELECT liked_profile_id FROM likes WHERE user_id = ?
+        )
+        AND id NOT IN (
+            SELECT seen_profile_id FROM seen_users WHERE user_id = ?
+        )
+    """, (user_id, user_id, user_id))
+
+    profiles = cursor.fetchall()
+    conn.close()
+    return profiles
+
+# ----------------------------
+# SKIP
+# ----------------------------  
+  
+@app.route("/pass", methods=["POST"])
+def skip():
+
+    user_id = session["user_id"]
+    idx = session.get("index", 0)
+
+    profiles = get_unseen_profiles(user_id)
+
+    if idx < len(profiles):
+        profile = profiles[idx]
+        profile_id = profile[0]
+
+        conn = sqlite3.connect("database.db")
+        cursor = conn.cursor()
+
+        # mark as seen
+        cursor.execute("""
+            INSERT INTO seen_users (user_id, seen_profile_id)
+            VALUES (?, ?)
+        """, (user_id, profile_id))
+
+        conn.commit()
+        conn.close()
+
+    session["index"] = idx + 1
+    return redirect("/")
 
 # ----------------------------
 # RUN SERVER

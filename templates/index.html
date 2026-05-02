@@ -1,36 +1,160 @@
-<!-- html page --> 
 <!DOCTYPE html>
-<!-- starts html webpage --> 
 <html>
-    <!-- info about page --> 
+
 <head>
-    <!-- text shown on page --> 
-    <title>Matched</title>
+    <!-- Title shown in browser tab -->
+    <title>Swipe App</title>
+
+    <style>
+        /* ----------------------------
+           PAGE LAYOUT (CENTER CARD)
+        ---------------------------- */
+
+        body {
+            font-family: Arial; /* sets readable font */
+            background: #f2f2f2; /* light gray background */
+            
+            /* centers the card horizontally + vertically */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+
+            height: 100vh; /* full screen height */
+            margin: 0;
+        }
+
+        /* ----------------------------
+           MAIN PROFILE CARD
+        ---------------------------- */
+
+        .card {
+            background: white; /* card color */
+            width: 300px; /* fixed width like Tinder card */
+            padding: 20px; /* space inside card */
+
+            border-radius: 12px; /* rounded corners */
+
+            text-align: center; /* center text inside */
+
+            /* shadow makes it look like a floating card */
+            box-shadow: 0px 5px 15px rgba(0,0,0,0.2);
+        }
+
+        /* NAME STYLE */
+        .name {
+            font-size: 24px; /* big text */
+            font-weight: bold; /* thick text */
+        }
+
+        /* BIO STYLE */
+        .bio {
+            margin-top: 10px; /* space above bio */
+            color: gray; /* softer text color */
+        }
+
+        /* ----------------------------
+           BUTTON AREA (LIKE / PASS)
+        ---------------------------- */
+
+        .buttons {
+            margin-top: 20px; /* space above buttons */
+
+            display: flex; /* puts buttons side-by-side */
+            justify-content: space-between; /* spreads them apart */
+        }
+
+        /* ALL BUTTONS */
+        button {
+            width: 45%; /* each button takes half space */
+            padding: 10px;
+
+            border: none; /* removes default border */
+            border-radius: 8px; /* rounded buttons */
+
+            cursor: pointer; /* hand cursor on hover */
+            font-size: 16px;
+        }
+
+        /* GREEN LIKE BUTTON */
+        .like {
+            background: #4CAF50; /* green */
+            color: white; /* white text */
+        }
+
+        /* RED PASS BUTTON */
+        .pass {
+            background: #f44336; /* red */
+            color: white;
+        }
+
+        /* ----------------------------
+           TOP NAVIGATION LINKS
+        ---------------------------- */
+
+        .nav {
+            position: absolute; /* floats at top of page */
+            top: 20px;
+        }
+
+        .nav a {
+            margin: 10px; /* space between links */
+            text-decoration: none; /* removes underline */
+            color: black;
+        }
+    </style>
 </head>
-<!-- everything inside of body is what user sees  --> 
+
 <body>
-<!-- curly brackets means insert python data here --> 
-    <h1>{{ profile.name }}</h1>
-    <p>{{ profile.bio }}</p>
-<!-- form = way to send data to server, /like is go to like route and post is used for actions like liking --> 
-    <form action="/like" method="post">
-        <button type="submit">Like ❤️</button>
-    </form>
 
-    <form action="/pass" method="post">
-        <button type="submit">Pass ❌</button>
-    </form>
-<!-- </a> is an anchor table which creates clickable link -->
- <!-- href = where the link goes -->
-  <!-- See Likes = text where user clicks -->
-    <a href = "/likes">See Likes</a>
+    <!-- ----------------------------
+         NAVIGATION BAR
+         (links to other pages)
+    ---------------------------- -->
+    <div class="nav">
+        <a href="/matches">Matches</a>
+        <a href="/likes">Likes</a>
+        <a href="/logout">Logout</a>
+    </div>
 
-    <a href="/matches"> See Matches </a>
+    <!-- ----------------------------
+         PROFILE CARD
+         This is the current user shown from Flask
+    ---------------------------- -->
+    <div class="card">
 
-    <a href = "/logout">Logout </a>
+        <!-- NAME from Flask backend -->
+        <div class="name">
+            {{ profile.name }}
+        </div>
 
+        <!-- BIO from Flask backend -->
+        <div class="bio">
+            {{ profile.bio }}
+        </div>
 
-<!-- ends visible content --> 
+        <!-- ----------------------------
+             ACTION BUTTONS
+             These send POST requests to Flask
+        ---------------------------- -->
+        <div class="buttons">
+
+            <!-- PASS FORM -->
+            <form action="/pass" method="POST">
+                <button class="pass">
+                    Pass
+                </button>
+            </form>
+
+            <!-- LIKE FORM -->
+            <form action="/like" method="POST">
+                <button class="like">
+                    Like
+                </button>
+            </form>
+
+        </div>
+
+    </div>
+
 </body>
-<!-- end of webpage --> 
 </html>
