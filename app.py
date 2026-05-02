@@ -309,6 +309,7 @@ def skip():
 def show_likes():
     conn = sqlite3.connect("database.db")
     cursor = conn.cursor()
+    user_id = session["user_id"]
 
     #Gets the name and bio of all profiles user liked
     # select = these columns 
@@ -318,9 +319,9 @@ def show_likes():
     cursor.execute("""
         SELECT profiles.name, profiles.bio
         FROM likes
-        JOIN profiles ON likes.liked_profile_id = profiles.id
-        WHERE user_id = session["user_id]
-    """)
+        JOIN profiles On likes.liked_profile_id = profiles.id
+        WHERE likes.user_id = ?
+    """, (user_id,))
 
     liked_profiles = cursor.fetchall()
 
