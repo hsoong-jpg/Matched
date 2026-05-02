@@ -36,6 +36,7 @@ def init_db():
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS profiles (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
             name TEXT,
             bio TEXT
         )
@@ -50,6 +51,16 @@ def init_db():
             liked_profile_id INTEGER
         )
     """)
+#stores a matches table 
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS matches (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user1_id INTEGER,
+        user2_id INTEGER
+    )
+""")
+    
     #saves changed to database
     conn.commit()
     #closes database connection
@@ -91,12 +102,22 @@ def signup():
         conn = sqlite3.connect("database.db")
         cursor = conn.cursor()
         #inserts new user 
-        cursor.execute(
+        # insert user
+    cursor.execute(
     "INSERT INTO users (username, password) VALUES (?, ?)",
     (username, password)
 )
-        conn.commit()
-        conn.close()
+
+# get new user's id
+    user_id = cursor.lastrowid
+
+# create profile for that user
+    cursor.execute(
+    "INSERT INTO profiles (user_id, name, bio) VALUES (?, ?, ?)",
+    (user_id, username, "New user!")
+)
+    conn.commit()
+    conn.close()
         #sends user back to login page after signing up
         return redirect("/login")
     #show sign up page if not POST
@@ -134,7 +155,14 @@ def login():
         #if just opening page 
     return render_template("login.html")
 
-
+# ----------------------------
+# LOGOUT
+# ----------------------------
+@app.route("/logout")
+def logout():
+    #clears who is logged in
+    session.clear()
+    return redirect("/login")
 
 # ----------------------------
 # HOMEPAGE
@@ -144,8 +172,37 @@ def login():
 def index():
     if "user_id" not in session:
         return redirect("/login") 
-    #if they are logged in
-    return render_template("index.html")
+    
+    #get users own index 
+    if "index" not in session:
+        session["index"] = 0
+    #connect to database
+    conn = sqlite3.connect("database.db")
+    cursor = conn.cursor()
+    #Get all profiles
+    user_id = session["user_id"]
+    cursor.execute("""
+                   SELECT * FROM profiles
+                   WHERE user_id = ?
+                   """, (user_id,))
+    conn.close()
+    #if you run out of profiles 
+    if current_index >=len(profiles):
+        return "No more profiles"
+
+    #pick current profile 
+    profile = profiles[current_index]
+
+    #Send to HTML in correct format 
+    return render_template(
+        "index.html",
+        profile={
+            "id" : profile[0],
+            "name" : profile[1],
+            "bio": profile[2]
+
+        }
+    )
 
 
 # ----------------------------
@@ -154,8 +211,15 @@ def index():
 #methods allows this to run when user clicks like
 @app.route("/like", methods=["POST"])
 def like():
-    global current_index
+    if "user_id" not in session:
+        return redirect("/login") 
+    
+    #get users own index 
+    if "index" not in session:
+        session["index"] = 0
+    
     user_id = session["user_id"]
+    current_index = session["index"]
 
     conn = sqlite3.connect("database.db")
     cursor = conn.cursor()
@@ -171,22 +235,64 @@ def like():
             "INSERT INTO likes (user_id, liked_profile_id) VALUES (?, ?)", #inserts new row into likes table
             (user_id, profile[0])  # user liked profile[id]
         )
+        #check if the other user already liked this user
+        other_user_id = profile[1]  # because profile = (id, user_id, name, bio)
+
+    cursor.execute("""
+    SELECT * FROM likes
+    WHERE user_id = ? AND liked_profile_id = ?
+""", (other_user_id, user_id))
+    match = cursor.fetchone()
+
+    if match:
+            cursor.execute(
+                "INSERT INTO matches (user1_id, user2_id) VALUES (?,?)",
+                (user_id, profile[0])
+            )
 
     conn.commit()
     conn.close()
     #move to next profile
     current_index += 1
     return redirect("/")
+# ----------------------------
+# MATCHES
+# ----------------------------
+@app.route("/matches")
+def show_matches():
 
+    if "user_id" not in session:
+        return redirect("/login")
 
+    user_id = session["user_id"]
+
+    conn = sqlite3.connect("database.db")
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT profiles.name, profiles.bio
+        FROM matches
+        JOIN profiles ON matches.user2_id = profiles.id
+        WHERE matches.user1_id = ?
+    """, (user_id,))
+
+    matches = cursor.fetchall()
+    conn.close()
+
+    result = []
+    for m in matches:
+        result.append({"name": m[0], "bio": m[1]})
+
+    return render_template("matches.html", profiles=result)
 # ----------------------------
 # PASS
 # ----------------------------
 
 @app.route("/pass", methods=["POST"])
 def skip():
-    global current_index
-    current_index += 1
+    if "index" not in session:
+        session["index"] = 0
+    session["index"] +=1
     return redirect("/")
 
 
@@ -208,7 +314,7 @@ def show_likes():
         SELECT profiles.name, profiles.bio
         FROM likes
         JOIN profiles ON likes.liked_profile_id = profiles.id
-        WHERE likes.user_id = 1
+        WHERE user_id = session["user_id]
     """)
 
     liked_profiles = cursor.fetchall()
@@ -220,7 +326,7 @@ def show_likes():
     for p in liked_profiles:
         result.append({"name": p[0], "bio": p[1]})
     #returns JSON
-    return {"liked_profiles": result}
+    return render_template("likes.html", profiles=result)
 
 
 # ----------------------------

@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html?
+<head>
+    <title> Matches</title>
+</head>
+<body>
+
+    <h1> Your Matches 🎾</h1>
+
+    {% for p in profiles %}
+    <div>
+        <h2>{{p.name}}</h2>
+        <p>{{p.bio}}</p>
+    </div>
+    <hr>
+    {% endfor %}
+
+    <a href="/">Back</a>
+</body>

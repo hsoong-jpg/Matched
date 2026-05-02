@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Your Likes</title>
+    </head>
+    <body>
+        <h1>People You Liked ❤️</h1>
+        <!--{% for % } is a loop in HTML-->
+        {% for p in profiles %}
+        <div>
+            <h2>{{p.name}}</h2>
+            <p>{{p.bio}}</p>
+            <!--defines section -->
+        </div>
+        <!--Horiztonal Rule that creates break -->
+        <hr>
+        {% endfor %}
+
+        <a href="/">Back</a>
+    </body>
+</html>
