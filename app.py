@@ -189,6 +189,7 @@ def index():
                    SELECT * FROM profiles
                    WHERE user_id = ?
                    """, (user_id,))
+    profiles = cursor.fetchall()
     conn.close()
     #if you run out of profiles 
     if current_index >=len(profiles):
