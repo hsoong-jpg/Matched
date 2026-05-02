@@ -207,6 +207,9 @@ def index():
         "bio": profile[5]
     },
     no_profiles=False)
+</div> <!-- end card -->
+
+
 
 
 # ----------------------------

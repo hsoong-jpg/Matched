@@ -94,9 +94,10 @@
     <a href="/logout">Logout</a>
 </div>
 
-<!-- PROFILE CARD -->
+<!-- MAIN CONTENT -->
 {% if no_profiles %}
 
+<!-- EMPTY STATE -->
 <div class="card">
     <div class="name">No more profiles</div>
     <div class="info">You're all caught up 🎉</div>
@@ -107,27 +108,21 @@
 <!-- PROFILE CARD -->
 <div class="card">
 
-    <!-- NAME -->
     <div class="name">
         {{ profile.name }}
     </div>
 
-    <!-- gENDER -->
     <div class="info">
         gender: {{ profile.gender }}
     </div>
 
-    <!-- UTR -->
     <div class="info">
         utr: {{ profile.utr }}
     </div>
 
-    <!-- BIO -->
     <div class="info">
         Bio: {{ profile.bio }}
     </div>
-
-  
 
     <!-- BUTTONS -->
     <div class="buttons">
@@ -143,6 +138,8 @@
     </div>
 
 </div>
+
+{% endif %}
 
 </body>
 </html>
