@@ -221,8 +221,13 @@ def index():
     idx = session["index"]
 
     # if no more profiles left
+    if len(profiles) == 0:
+        return "No profiles available"
+
+# reset loop instead of stopping
     if idx >= len(profiles):
-        return "No more profiles"
+        session["index"] = 0
+        idx = 0
 
     profile = profiles[idx]
 
@@ -235,6 +240,7 @@ def index():
             "bio": profile[3]
         }
     )
+
 
 
 # ----------------------------
@@ -306,7 +312,7 @@ def like():
     """, (user1, user2))
 
         # move to next profile
-    session["index"] += 1
+    session["index"] = session.get("index", 0) + 1
 
     conn.commit()
     conn.close()
@@ -434,7 +440,7 @@ def get_unseen_profiles(user_id):
 # ----------------------------  
   
 @app.route("/pass", methods=["POST"])
-def skip():
+def skip_profile():
 
     user_id = session["user_id"]
     idx = session.get("index", 0)
