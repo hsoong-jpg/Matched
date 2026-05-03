@@ -1,40 +1,26 @@
-
-from flask import Flask, render_template, request, redirect, session
 import sqlite3
+from flask import Flask, render_template, request, redirect, session
 
 app = Flask(__name__)
-app.secret_key = "your_secret_key"
-
+app.secret_key = "secretkey"
 
 # ----------------------------
-# DATABASE
+# DATABASE INIT
 # ----------------------------
 def init_db():
     conn = sqlite3.connect("database.db")
     cursor = conn.cursor()
 
-    # USERS (login only)
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT,
+            bio TEXT,
             username TEXT UNIQUE,
             password TEXT
         )
     """)
 
-    # PROFILES (public data)
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS profiles (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER,
-            name TEXT,
-            gender TEXT,
-            utr TEXT,
-            bio TEXT
-        )
-    """)
-
-    # LIKES
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS likes (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -43,39 +29,10 @@ def init_db():
         )
     """)
 
-    # MATCHES
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS matches (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user1_id INTEGER,
-            user2_id INTEGER,
-            UNIQUE(user1_id, user2_id)
-        )
-    """)
-
-    # SEEN USERS
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS seen_users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER,
-            seen_user_id INTEGER
-        )
-    """)
-
-    # MESSAGES
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS messages (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            sender_id INTEGER,
-            receiver_id INTEGER,
-            message TEXT,
-            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-        )
-    """)
-
     conn.commit()
     conn.close()
 
+init_db()
 
 # ----------------------------
 # SIGNUP
@@ -83,28 +40,17 @@ def init_db():
 @app.route("/signup", methods=["GET", "POST"])
 def signup():
     if request.method == "POST":
-        username = request.form["username"]
-        password = request.form["password"]
-        gender = request.form["gender"]
-        utr = request.form["utr"]
-        bio = request.form["bio"]
-
+        name = request.form.get("name")
+        bio = request.form.get("bio")
+        username = request.form.get("username")
+        password = request.form.get("password")
         conn = sqlite3.connect("database.db")
         cursor = conn.cursor()
 
-        # 1. create user
-        cursor.execute(
-            "INSERT INTO users (username, password) VALUES (?, ?)",
-            (username, password)
-        )
-
-        user_id = cursor.lastrowid
-
-        # 2. create profile linked to user
         cursor.execute("""
-            INSERT INTO profiles (user_id, name, gender, utr, bio)
-            VALUES (?, ?, ?, ?, ?)
-        """, (user_id, username, gender, utr, bio))
+            INSERT INTO users (name, bio, username, password)
+            VALUES (?, ?, ?, ?)
+        """, (name, bio, username, password))
 
         conn.commit()
         conn.close()
@@ -127,8 +73,7 @@ def login():
         cursor = conn.cursor()
 
         cursor.execute("""
-            SELECT id FROM users
-            WHERE username=? AND password=?
+            SELECT * FROM users WHERE username=? AND password=?
         """, (username, password))
 
         user = cursor.fetchone()
@@ -136,7 +81,6 @@ def login():
 
         if user:
             session["user_id"] = user[0]
-            session["index"] = 0
             return redirect("/")
         else:
             return "Invalid login"
@@ -145,123 +89,45 @@ def login():
 
 
 # ----------------------------
-# LOGOUT
-# ----------------------------
-@app.route("/logout")
-def logout():
-    session.clear()
-    return redirect("/login")
-
-
-# ----------------------------
-# GET UNSEEN PROFILES
-# ----------------------------
-def get_unseen_profiles(user_id):
-    conn = sqlite3.connect("database.db")
-    cursor = conn.cursor()
-
-    cursor.execute("""
-        SELECT * FROM profiles
-        WHERE user_id != ?
-        AND user_id NOT IN (
-            SELECT liked_user_id FROM likes WHERE user_id = ?
-        )
-        AND user_id NOT IN (
-            SELECT seen_user_id FROM seen_users WHERE user_id = ?
-        )
-    """, (user_id, user_id, user_id))
-
-    profiles = cursor.fetchall()
-    conn.close()
-    return profiles
-
-
-# ----------------------------
-# HOME (SWIPE FEED)
+# HOME (SWIPE PROFILE)
 # ----------------------------
 @app.route("/")
 def index():
     if "user_id" not in session:
         return redirect("/login")
 
-    user_id = session["user_id"]
+    conn = sqlite3.connect("database.db")
+    cursor = conn.cursor()
 
-    profiles = get_unseen_profiles(user_id)
-    idx = session.get("index", 0)
+    cursor.execute("SELECT * FROM users WHERE id != ?", (session["user_id"],))
+    users = cursor.fetchall()
+    conn.close()
 
-    if len(profiles) == 0:
-        return render_template("index.html, no_profiles=True")
-    
+    if len(users) == 0:
+        return render_template("index.html", no_profiles=True)
 
-    if idx >= len(profiles):
-        session["index"] = 0
-        idx = 0
-
-    profile = profiles[idx]
-
-    return render_template("index.html", profile={
-        "user_id": profile[1],
-        "name": profile[2],
-        "gender": profile[3],
-        "utr": profile[4],
-        "bio": profile[5]
-    },
-    no_profiles=False)
-</div> <!-- end card -->
-
-
+    session["index"] = 0
+    return render_template("index.html", user=users[0])
 
 
 # ----------------------------
-# LIKE
+# LIKE BUTTON
 # ----------------------------
 @app.route("/like", methods=["POST"])
 def like():
     if "user_id" not in session:
         return redirect("/login")
 
+    liked_id = request.form["liked_user_id"]
     user_id = session["user_id"]
-    idx = session.get("index", 0)
 
     conn = sqlite3.connect("database.db")
     cursor = conn.cursor()
 
-    profiles = get_unseen_profiles(user_id)
-
-    if idx >= len(profiles):
-        return redirect("/")
-
-    profile = profiles[idx]
-    other_user_id = profile[1]
-
-    # save like
     cursor.execute("""
         INSERT INTO likes (user_id, liked_user_id)
         VALUES (?, ?)
-    """, (user_id, other_user_id))
-
-    # mark seen
-    cursor.execute("""
-        INSERT INTO seen_users (user_id, seen_user_id)
-        VALUES (?, ?)
-    """, (user_id, other_user_id))
-
-    # check match
-    cursor.execute("""
-        SELECT * FROM likes
-        WHERE user_id=? AND liked_user_id=?
-    """, (other_user_id, user_id))
-
-    if cursor.fetchone():
-        user1 = min(user_id, other_user_id)
-        user2 = max(user_id, other_user_id)
-
-        cursor.execute("""
-            INSERT OR IGNORE INTO matches (user1_id, user2_id)
-            VALUES (?, ?)
-        """, (user1, user2))
-
-    session["index"] = idx + 1
+    """, (user_id, liked_id))
 
     conn.commit()
     conn.close()
@@ -270,33 +136,55 @@ def like():
 
 
 # ----------------------------
-# SKIP
+# PEOPLE WHO LIKED YOU
 # ----------------------------
-@app.route("/pass", methods=["POST"])
-def skip():
+@app.route("/likes")
+def likes():
+    if "user_id" not in session:
+        return redirect("/login")
+
     user_id = session["user_id"]
-    idx = session.get("index", 0)
 
-    profiles = get_unseen_profiles(user_id)
+    conn = sqlite3.connect("database.db")
+    cursor = conn.cursor()
 
-    if idx < len(profiles):
-        other_user_id = profiles[idx][1]
+    cursor.execute("""
+        SELECT users.id, users.name, users.bio
+        FROM likes
+        JOIN users ON users.id = likes.user_id
+        WHERE likes.liked_user_id = ?
+    """, (user_id,))
 
-        conn = sqlite3.connect("database.db")
-        cursor = conn.cursor()
+    likes = cursor.fetchall()
+    conn.close()
 
-        cursor.execute("""
-            INSERT INTO seen_users (user_id, seen_user_id)
-            VALUES (?, ?)
-        """, (user_id, other_user_id))
-
-        conn.commit()
-        conn.close()
-
-    session["index"] = idx + 1
-    return redirect("/")
+    return render_template("likes.html", likes=likes)
 
 
+# ----------------------------
+# PEOPLE YOU LIKED
+# ----------------------------
+@app.route("/liked")
+def liked():
+    if "user_id" not in session:
+        return redirect("/login")
+
+    user_id = session["user_id"]
+
+    conn = sqlite3.connect("database.db")
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT users.id, users.name, users.bio
+        FROM likes
+        JOIN users ON users.id = likes.liked_user_id
+        WHERE likes.user_id = ?
+    """, (user_id,))
+
+    liked_people = cursor.fetchall()
+    conn.close()
+
+    return render_template("liked.html", liked=liked_people)
 # ----------------------------
 # MATCHES
 # ----------------------------
@@ -310,71 +198,29 @@ def matches():
     conn = sqlite3.connect("database.db")
     cursor = conn.cursor()
 
+    # mutual likes = MATCHES
     cursor.execute("""
-        SELECT p.name, p.bio
-        FROM matches m
-        JOIN profiles p
-        ON p.user_id = m.user1_id OR p.user_id = m.user2_id
-        WHERE m.user1_id=? OR m.user2_id=?
-        GROUP BY p.user_id
-    """, (user_id, user_id))
+        SELECT users.id, users.name, users.bio
+        FROM likes l1
+        JOIN likes l2 ON l1.user_id = l2.liked_user_id
+                      AND l1.liked_user_id = l2.user_id
+        JOIN users ON users.id = l2.user_id
+        WHERE l1.user_id = ?
+    """, (user_id,))
 
     matches = cursor.fetchall()
     conn.close()
 
-    return render_template("matches.html", profiles=matches)
-
-
-# ----------------------------
-# CHAT
-# ----------------------------
-@app.route("/chat/<int:user2_id>")
-def chat(user2_id):
-    user_id = session["user_id"]
-
-    conn = sqlite3.connect("database.db")
-    cursor = conn.cursor()
-
-    cursor.execute("""
-        SELECT sender_id, receiver_id, message, timestamp
-        FROM messages
-        WHERE (sender_id=? AND receiver_id=?)
-           OR (sender_id=? AND receiver_id=?)
-        ORDER BY timestamp ASC
-    """, (user_id, user2_id, user2_id, user_id))
-
-    messages = cursor.fetchall()
-    conn.close()
-
-    return render_template("chat.html", messages=messages, user2_id=user2_id)
-
+    return render_template("matches.html", matches=matches)
 
 # ----------------------------
-# SEND MESSAGE
+# LOGOUT
 # ----------------------------
-@app.route("/send_message/<int:user2_id>", methods=["POST"])
-def send_message(user2_id):
-    user_id = session["user_id"]
-    message = request.form["message"]
-
-    conn = sqlite3.connect("database.db")
-    cursor = conn.cursor()
-
-    cursor.execute("""
-        INSERT INTO messages (sender_id, receiver_id, message)
-        VALUES (?, ?, ?)
-    """, (user_id, user2_id, message))
-
-    conn.commit()
-    conn.close()
-
-    return redirect(f"/chat/{user2_id}")
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect("/login")
 
 
-# ----------------------------
-# RUN APP
-# ----------------------------
 if __name__ == "__main__":
-    init_db()
     app.run(debug=True)
-    

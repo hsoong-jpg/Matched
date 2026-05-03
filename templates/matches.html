@@ -1,19 +1,12 @@
-<!DOCTYPE html>
-<html?
-<head>
-    <title> Matches</title>
-</head>
-<body>
+<h1>Your Matches 💥</h1>
 
-    <h1> Your Matches 🎾</h1>
-
-    {% for p in profiles %}
-    <div>
-        <h2>{{p.name}}</h2>
-        <p>{{p.bio}}</p>
-    </div>
-    <hr>
+{% if matches %}
+    {% for user in matches %}
+        <div style="border:1px solid #ccc; padding:10px; margin:10px;">
+            <h3>{{ user[1] }}</h3>
+            <p>{{ user[2] }}</p>
+        </div>
     {% endfor %}
-
-    <a href="/"></a>
-</body>
+{% else %}
+    <p>No matches yet.</p>
+{% endif %}
