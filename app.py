@@ -1,16 +1,31 @@
+#Allows database to be created in a file 
 import sqlite3
+
+#Flask = main web, render_template = loads HTML files
+#Request = handles incoming form data, Redirect = sends user to another route
+#Session stores login state (like User ID)
 from flask import Flask, render_template, request, redirect, session
 
+#Creates app
 app = Flask(__name__)
+
+#Used to secure session data 
 app.secret_key = "secretkey"
 
 # ----------------------------
-# DATABASE INIT
+# DATABASE 
 # ----------------------------
 def init_db():
+
+    #Connects to a file called "database.db"
     conn = sqlite3.connect("database.db")
+
+    #Cursor lets you run SQL commands
     cursor = conn.cursor()
 
+    #USERS TABLE
+    #id = unique user id, name and bio = profile info 
+    #username = unique, password = stored as plain text 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -21,6 +36,8 @@ def init_db():
         )
     """)
 
+    #LIKES TABLE
+    #Stores who liked who 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS likes (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -29,17 +46,28 @@ def init_db():
         )
     """)
 
+    #Saves changes 
     conn.commit()
+
+    #Closes DB connection
     conn.close()
 
+#Runs this setup when app starts 
 init_db()
 
 # ----------------------------
 # SIGNUP
+#URL: /signup
+#GET = request page and data in it
+#POST = send data to server to update 
 # ----------------------------
 @app.route("/signup", methods=["GET", "POST"])
 def signup():
+
+    #Runs when user submits form
     if request.method == "POST":
+
+        #Gets data from HTML
         name = request.form.get("name")
         bio = request.form.get("bio")
         username = request.form.get("username")
@@ -47,6 +75,8 @@ def signup():
         conn = sqlite3.connect("database.db")
         cursor = conn.cursor()
 
+        #Inserts user into database 
+        #? prevents SQL injection
         cursor.execute("""
             INSERT INTO users (name, bio, username, password)
             VALUES (?, ?, ?, ?)
@@ -55,8 +85,10 @@ def signup():
         conn.commit()
         conn.close()
 
+        #After signup go to login page
         return redirect("/login")
 
+    #Keep user in signup page if they dont submit anything 
     return render_template("signup.html")
 
 
@@ -65,6 +97,8 @@ def signup():
 # ----------------------------
 @app.route("/login", methods=["GET", "POST"])
 def login():
+
+    #Gets submitted login 
     if request.method == "POST":
         username = request.form["username"]
         password = request.form["password"]
@@ -72,19 +106,27 @@ def login():
         conn = sqlite3.connect("database.db")
         cursor = conn.cursor()
 
+        #Checks if user exists
         cursor.execute("""
             SELECT * FROM users WHERE username=? AND password=?
         """, (username, password))
 
+        #Gets first matching user
         user = cursor.fetchone()
         conn.close()
 
+        #Saves logged in user ID in session
         if user:
             session["user_id"] = user[0]
+
+            #Go to homepage
             return redirect("/")
+        
+        #If login does not match any users 
         else:
             return "Invalid login"
 
+    #Stay on login page 
     return render_template("login.html")
 
 
@@ -93,19 +135,26 @@ def login():
 # ----------------------------
 @app.route("/")
 def index():
+
+    #Blocks access if not logged in
     if "user_id" not in session:
         return redirect("/login")
 
     conn = sqlite3.connect("database.db")
     cursor = conn.cursor()
 
+    #Gets all users except current user
     cursor.execute("SELECT * FROM users WHERE id != ?", (session["user_id"],))
+    
+    #List of users
     users = cursor.fetchall()
     conn.close()
 
+    #If no profiles exist 
     if len(users) == 0:
         return render_template("index.html", no_profiles=True)
 
+    #Shows first user 
     session["index"] = 0
     return render_template("index.html", user=users[0])
 
@@ -118,12 +167,16 @@ def like():
     if "user_id" not in session:
         return redirect("/login")
 
+    #Who you liked
     liked_id = request.form["liked_user_id"]
+
+    #Who you are
     user_id = session["user_id"]
 
     conn = sqlite3.connect("database.db")
     cursor = conn.cursor()
 
+    #Saves the like
     cursor.execute("""
         INSERT INTO likes (user_id, liked_user_id)
         VALUES (?, ?)
@@ -132,6 +185,7 @@ def like():
     conn.commit()
     conn.close()
 
+    #Reloads for next profile
     return redirect("/")
 
 
@@ -148,6 +202,7 @@ def likes():
     conn = sqlite3.connect("database.db")
     cursor = conn.cursor()
 
+    #Finds users who liked you
     cursor.execute("""
         SELECT users.id, users.name, users.bio
         FROM likes
@@ -174,6 +229,9 @@ def liked():
     conn = sqlite3.connect("database.db")
     cursor = conn.cursor()
 
+    #Finds users you liked
+    #WHERE = who liked me (filter to people who liked me)
+    #JOIN = take each user_id and match it with the full user profile in the users table 
     cursor.execute("""
         SELECT users.id, users.name, users.bio
         FROM likes
@@ -198,7 +256,7 @@ def matches():
     conn = sqlite3.connect("database.db")
     cursor = conn.cursor()
 
-    # mutual likes = MATCHES
+    
     cursor.execute("""
         SELECT users.id, users.name, users.bio
         FROM likes l1
@@ -218,9 +276,12 @@ def matches():
 # ----------------------------
 @app.route("/logout")
 def logout():
+
+    #Logs user out
     session.clear()
     return redirect("/login")
 
-
+#Runs server locally 
 if __name__ == "__main__":
+    #Auto reloads and shows errors 
     app.run(debug=True)

@@ -1,12 +1,33 @@
+<!-- Header on page-->
 <h1>Your Matches 💥</h1>
 
+<!-- if matches exist -->
 {% if matches %}
+
+    <!-- Loop through each user in matches list-->
     {% for user in matches %}
+
+    <!-- Creates a box for each match-->
         <div style="border:1px solid #ccc; padding:10px; margin:10px;">
+
+            <!-- print user's name-->
             <h3>{{ user[1] }}</h3>
+
+            <!-- print users bio-->
             <p>{{ user[2] }}</p>
+
+            <!-- "closes" match box-->
         </div>
+
+        <!-- ends loop-->
     {% endfor %}
+
+    <!-- If there is no matches-->
 {% else %}
+
+    <!-- Print for no matches-->
     <p>No matches yet.</p>
+
+<!-- end 
+ loop-->
 {% endif %}
