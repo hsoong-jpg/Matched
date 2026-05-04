@@ -27,14 +27,16 @@ def init_db():
     #id = unique user id, name and bio = profile info 
     #username = unique, password = stored as plain text 
     cursor.execute("""
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT,
-            bio TEXT,
-            username TEXT UNIQUE,
-            password TEXT
-        )
-    """)
+    CREATE TABLE  IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT,
+        bio TEXT,
+        username TEXT,
+        password TEXT,
+        gender TEXT,
+        looking_for TEXT
+)
+""")
 
     #LIKES TABLE
     #Stores who liked who 
@@ -64,31 +66,29 @@ init_db()
 @app.route("/signup", methods=["GET", "POST"])
 def signup():
 
-    #Runs when user submits form
     if request.method == "POST":
 
-        #Gets data from HTML
         name = request.form.get("name")
         bio = request.form.get("bio")
         username = request.form.get("username")
         password = request.form.get("password")
+        gender = request.form.get("gender")
+
+        looking_for = ",".join(request.form.getlist("looking_for"))
+
         conn = sqlite3.connect("database.db")
         cursor = conn.cursor()
 
-        #Inserts user into database 
-        #? prevents SQL injection
         cursor.execute("""
-            INSERT INTO users (name, bio, username, password)
-            VALUES (?, ?, ?, ?)
-        """, (name, bio, username, password))
+            INSERT INTO users (name, bio, username, password, gender, looking_for)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (name, bio, username, password, gender, looking_for))
 
         conn.commit()
         conn.close()
 
-        #After signup go to login page
         return redirect("/login")
 
-    #Keep user in signup page if they dont submit anything 
     return render_template("signup.html")
 
 
