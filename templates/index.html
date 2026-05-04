@@ -111,30 +111,27 @@
 <div class="card">
 
     <div class="name">
-        {{ profile.name }}
+        {{ user.name }}
     </div>
 
     <div class="info">
-        gender: {{ profile.gender }}
+        Gender: {{ user.gender }}
     </div>
 
     <div class="info">
-        utr: {{ profile.utr }}
+        Bio: {{ user.bio }}
     </div>
 
-    <div class="info">
-        Bio: {{ profile.bio }}
-    </div>
-
-    <!-- BUTTONS -->
     <div class="buttons">
 
         <form action="/pass" method="POST">
-            <button class="pass">Pass</button>
+            <input type="hidden" name="passed_user_id" value="{{ user.id }}">
+            <button class="pass" type="submit">Pass</button>
         </form>
 
         <form action="/like" method="POST">
-            <button class="like">Like</button>
+            <input type="hidden" name="liked_user_id" value="{{ user.id }}">
+            <button class="like" type="submit">Like</button>
         </form>
 
     </div>

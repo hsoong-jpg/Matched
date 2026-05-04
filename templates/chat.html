@@ -1,0 +1,88 @@
+<h2>Chat</h2>
+
+<style>
+#chat {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px;
+}
+
+.message {
+    max-width: 60%;
+    padding: 10px;
+    border-radius: 15px;
+    font-size: 14px;
+    word-wrap: break-word;
+}
+
+/* YOUR messages (right side) */
+.sent {
+    align-self: flex-end;
+    background-color: #DCF8C6;
+}
+
+/* THEIR messages (left side) */
+.received {
+    align-self: flex-start;
+    background-color: #E5E5EA;
+}
+</style>
+<!--creates a box where messages will appear-->
+<div id="chat">
+  {% for msg in messages %}
+    <div class="message {% if msg[0] == current_user %}sent{% else %}received{% endif %}">
+      <b>{{ msg[1] }}</b>: {{ msg[3] }}
+    </div>
+  {% endfor %}
+</div>
+
+<!--id =msg lets user types message-->
+<input id="msg" placeholder="Type message...">
+
+<!--when clicked calls sendMessage()-->
+<button onclick="sendMessage()">Send</button>
+
+<!--Enables real time communication-->
+<script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+
+
+<script>
+const socket = io(); //Creates webSocket connection between browser and Flask server 
+
+const data = JSON.parse('{{ data | tojson }}'); //Get data from Flask
+
+const user1 = data.current_user;
+const user2 = data.user_id;
+
+const room = "chat_" + Math.min(user1, user2) + "_" + Math.max(user1, user2); //ensures users share same room name and order doesn't matter
+
+// join room
+socket.emit("join", { room: room });
+
+// receive messages
+socket.on("receive_message", function(data) {
+    const div = document.getElementById("chat");
+
+    const isMe = data.sender_id == user1;
+
+    div.innerHTML += `
+        <div class="message ${isMe ? 'sent' : 'received'}">
+            <b>${data.sender_id}</b>: ${data.message}
+        </div>
+    `;
+});
+
+// send message
+function sendMessage() {
+    const msg = document.getElementById("msg").value; //reads typed message
+
+    //sends message to Flask backend
+    socket.emit("send_message", {
+        receiver_id: user2,
+        message: msg
+    });
+
+    document.getElementById("msg").value = ""; //Clears textbox after sending
+}
+</script>

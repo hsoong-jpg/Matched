@@ -1,6 +1,14 @@
 #Allows database to be created in a file 
 import sqlite3
 
+#Hash password import
+from werkzeug.security import generate_password_hash, check_password_hash
+
+#Allows for instant messaging 
+from flask_socketio import SocketIO, emit, join_room
+
+socketio = SocketIO(__name__)
+
 #Flask = main web, render_template = loads HTML files
 #Request = handles incoming form data, Redirect = sends user to another route
 #Session stores login state (like User ID)
@@ -34,7 +42,8 @@ def init_db():
         username TEXT,
         password TEXT,
         gender TEXT,
-        looking_for TEXT
+        looking_for TEXT,
+        UTR TEXT
 )
 """)
 
@@ -47,6 +56,18 @@ def init_db():
             liked_user_id INTEGER
         )
     """)
+
+    #MESSAGE TABLE
+    #stores all messages
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS messages(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            sender_id INTEGER,
+            reciever_id INTEGER,
+            message TEXT,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+        """)
 
     #Saves changes 
     conn.commit()
@@ -66,12 +87,13 @@ init_db()
 @app.route("/signup", methods=["GET", "POST"])
 def signup():
 
+#Password stores secure hash 
     if request.method == "POST":
 
         name = request.form.get("name")
         bio = request.form.get("bio")
         username = request.form.get("username")
-        password = request.form.get("password")
+        password = generate_password_hash(request.form.get("password"))
         gender = request.form.get("gender")
 
         looking_for = ",".join(request.form.getlist("looking_for"))
@@ -95,40 +117,40 @@ def signup():
 # ----------------------------
 # LOGIN
 # ----------------------------
+
+#GET = viewing page, POST = submitted login form
 @app.route("/login", methods=["GET", "POST"])
 def login():
 
-    #Gets submitted login 
     if request.method == "POST":
+
+        #Gets data from HTML form
         username = request.form["username"]
         password = request.form["password"]
 
         conn = sqlite3.connect("database.db")
         cursor = conn.cursor()
 
-        #Checks if user exists
-        cursor.execute("""
-            SELECT * FROM users WHERE username=? AND password=?
-        """, (username, password))
+        #Searches database for the user 
+        cursor.execute("SELECT * FROM users WHERE username=?", (username,))
 
         #Gets first matching user
         user = cursor.fetchone()
+
         conn.close()
 
-        #Saves logged in user ID in session
-        if user:
+        #user = makes sure user exists
+        #user[4] gets stored hashed password
+        #Check_Password_hash = compares typed password and hashed password
+        if user and check_password_hash(user[4], password):
+
+            #this browser is logged in at user[0] (user id)
             session["user_id"] = user[0]
-
-            #Go to homepage
             return redirect("/")
-        
-        #If login does not match any users 
         else:
-            return "Invalid login"
+            return "Invalid username or password"
 
-    #Stay on login page 
     return render_template("login.html")
-
 
 # ----------------------------
 # HOME (SWIPE PROFILE)
@@ -186,6 +208,15 @@ def like():
     conn.close()
 
     #Reloads for next profile
+    return redirect("/")
+# ----------------------------
+# PASS
+# ----------------------------
+@app.route("/pass", methods=["POST"])
+def pass_user():
+    if "user_id" not in session:
+        return redirect("/login")
+
     return redirect("/")
 
 
@@ -270,6 +301,115 @@ def matches():
     conn.close()
 
     return render_template("matches.html", matches=matches)
+# ----------------------------
+# SEND MESSAGE 
+# ----------------------------
+
+@app.route("/send_message", methods=["POST"])
+def send_message():
+
+    if "user_id" not in session:
+        return redirect("/login")
+    
+    #sender id is set to user logged in
+    sender_id = session["user_id"]
+
+    #reciever id is set to requested id
+    receiver_id = request.form["receiver_id"]
+
+    #Message
+    message = request.form["message"]
+
+    conn = sqlite3.connect("database.db")
+    cursor = conn.cursor()
+
+    #insert sender_id, receiver_id, and message into message table 
+    cursor.execute("""
+        INSERT INTO messages (sender_id, receiver_id, message)
+        VALUES (?,?,?)
+                   """, (sender_id, receiver_id, message))
+    
+    conn.commit()
+    conn.close()
+
+    return redirect(f"/chat/{receiver_id}")
+# ----------------------------
+# JOIN ROOM EVENT
+# ----------------------------
+
+@socketio.on("join")
+def on_join(data):
+    room = data["room"]
+    join_room(room)
+
+# ----------------------------
+# SEND MESSAGES INSTANTLY
+# ----------------------------
+@socketio.on("send_message")
+def handle_message(data):
+    sender_id = session.get("user_id")
+
+    if not sender_id:
+        return
+    
+    if not is_match(sender_id, data["receiver_id"]):
+        return
+    conn = sqlite3.connect("database.db")
+    cursor = conn.cursor()
+
+    #Save messages to DB
+    cursor.execute("""
+    INSERT INTO messages (sender_id, receiver_id, message)
+    VALUES (?, ?, ?)
+""", (sender_id, data["receiver_id"], data["message"]))
+
+    conn.commit()
+    conn.close()    
+
+    #Sends only to two users 
+    room = f"chat_{min(sender_id, data['receiver_id'])}_{max(sender_id, data['receiver_id'])}"
+
+    emit("receive_message", {
+        "sender_id": sender_id,
+        "message": data["message"]
+}, room=room)
+    
+    return render_template("chat.html", user_id=user_id, current_user=session["user_id"])
+    
+
+
+
+# ----------------------------
+# CHAT PAGE
+# ----------------------------
+
+@app.route("/chat/<int:user_id>")
+def chat(user_id):
+    if "user_id" not in session:
+        return redirect["user_id"]
+    
+    current_user = session["user_id"]
+
+    conn = sqlite3.connect("database.db")
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT * FROM messages
+        WHERE (sender_id =? AND reciever_id=?)
+        OR (sender_id =? AND receiver_id=?)
+        ORDER BY timestamp
+                   """, (current_user, user_id, user_id, current_user))
+    
+    messages = cursor.fetchall()
+    conn.close()
+
+    return render_template(
+    "chat.html",
+    data={
+        "current_user": session["user_id"],
+        "user_id": user_id
+    }
+)
 
 # ----------------------------
 # LOGOUT
