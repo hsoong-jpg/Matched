@@ -1,11 +1,20 @@
+{% extends "base.html" %}
+
+{% block title %}Chat{% endblock %}
+
+{% block content %}
 <h2>Chat</h2>
 
 <style>
 #chat {
+    height: 400px;
+    overflow-y: auto;
     display: flex;
     flex-direction: column;
     gap: 8px;
     padding: 10px;
+    background: white;
+    border-radius: 12px;
 }
 
 .message {
@@ -16,51 +25,49 @@
     word-wrap: break-word;
 }
 
-/* YOUR messages (right side) */
 .sent {
     align-self: flex-end;
     background-color: #DCF8C6;
 }
 
-/* THEIR messages (left side) */
 .received {
     align-self: flex-start;
     background-color: #E5E5EA;
 }
 </style>
-<!--creates a box where messages will appear-->
+
 <div id="chat">
   {% for msg in messages %}
-    <div class="message {% if msg[0] == current_user %}sent{% else %}received{% endif %}">
-      <b>{{ msg[1] }}</b>: {{ msg[3] }}
+    <div class="message {% if msg[1] == current_user %}sent{% else %}received{% endif %}">
+      {{ msg[3] }}
     </div>
   {% endfor %}
 </div>
 
-<!--id =msg lets user types message-->
-<input id="msg" placeholder="Type message...">
+<div id="typing"></div>
 
-<!--when clicked calls sendMessage()-->
+<input id="msg" placeholder="Type message...">
 <button onclick="sendMessage()">Send</button>
 
-<!--Enables real time communication-->
 <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
 
-
 <script>
-const socket = io(); //Creates webSocket connection between browser and Flask server 
+const socket = io();
 
-const data = JSON.parse('{{ data | tojson }}'); //Get data from Flask
+const user1 = Number("{{ current_user }}");
+const user2 = Number("{{ user_id }}");
 
-const user1 = data.current_user;
-const user2 = data.user_id;
+const room = "chat_" + Math.min(user1, user2) + "_" + Math.max(user1, user2);
 
-const room = "chat_" + Math.min(user1, user2) + "_" + Math.max(user1, user2); //ensures users share same room name and order doesn't matter
-
-// join room
 socket.emit("join", { room: room });
 
-// receive messages
+/* SCROLL */
+function scrollToBottom() {
+    const chat = document.getElementById("chat");
+    chat.scrollTop = chat.scrollHeight;
+}
+
+/* RECEIVE */
 socket.on("receive_message", function(data) {
     const div = document.getElementById("chat");
 
@@ -68,21 +75,52 @@ socket.on("receive_message", function(data) {
 
     div.innerHTML += `
         <div class="message ${isMe ? 'sent' : 'received'}">
-            <b>${data.sender_id}</b>: ${data.message}
+            ${data.message}
         </div>
     `;
+
+    scrollToBottom();
 });
 
-// send message
+/* SEND */
 function sendMessage() {
-    const msg = document.getElementById("msg").value; //reads typed message
+    const msg = document.getElementById("msg").value;
 
-    //sends message to Flask backend
     socket.emit("send_message", {
         receiver_id: user2,
         message: msg
     });
 
-    document.getElementById("msg").value = ""; //Clears textbox after sending
+    socket.emit("stop_typing", { room: room });
+
+    document.getElementById("msg").value = "";
 }
+
+/* SCROLL ON LOAD */
+window.onload = scrollToBottom;
+
+/* TYPING */
+let typingTimeout;
+
+document.getElementById("msg").addEventListener("input", function() {
+
+    socket.emit("typing", { room: room });
+
+    clearTimeout(typingTimeout);
+
+    typingTimeout = setTimeout(() => {
+        socket.emit("stop_typing", { room: room });
+    }, 1000);
+});
+
+socket.on("show_typing", function(data) {
+    if (data.user_id != user1) {
+        document.getElementById("typing").innerText = "Typing...";
+    }
+});
+
+socket.on("hide_typing", function() {
+    document.getElementById("typing").innerText = "";
+});
 </script>
+{% endblock %}

@@ -1,3 +1,8 @@
+{% extends "base.html" %}
+
+{% block title %}PageName{% endblock %}
+
+{% block content %}
 <h1>People Who Liked You</h1>
 
 {% if likes %}
@@ -11,6 +16,4 @@
     <p>No likes yet.</p>
 {% endif %}
 
-<a href="/">Home</a>
-<a href="/matches">Matches</a>
-<a href="/logout">Logout</a>
+{% endblock %}

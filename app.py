@@ -1,3 +1,10 @@
+#Flask = main web, render_template = loads HTML files
+#Request = handles incoming form data, Redirect = sends user to another route
+#Session stores login state (like User ID)
+from flask import Flask, render_template, request, redirect, session
+
+#Date and time
+from datetime import datetime
 #Allows database to be created in a file 
 import sqlite3
 
@@ -7,18 +14,14 @@ from werkzeug.security import generate_password_hash, check_password_hash
 #Allows for instant messaging 
 from flask_socketio import SocketIO, emit, join_room
 
-socketio = SocketIO(__name__)
-
-#Flask = main web, render_template = loads HTML files
-#Request = handles incoming form data, Redirect = sends user to another route
-#Session stores login state (like User ID)
-from flask import Flask, render_template, request, redirect, session
-
 #Creates app
 app = Flask(__name__)
 
 #Used to secure session data 
 app.secret_key = "secretkey"
+
+#allows for instant messaging 
+socketio = SocketIO(app)
 
 # ----------------------------
 # DATABASE 
@@ -63,9 +66,10 @@ def init_db():
         CREATE TABLE IF NOT EXISTS messages(
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             sender_id INTEGER,
-            reciever_id INTEGER,
+            receiver_id INTEGER,
             message TEXT,
-            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+            seen INTEGER
         )
         """)
 
@@ -302,37 +306,51 @@ def matches():
 
     return render_template("matches.html", matches=matches)
 # ----------------------------
+# IS MATCH
+# ----------------------------
+def is_match(a, b):
+    conn = sqlite3.connect("database.db")
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT 1 FROM likes
+        WHERE (user_id=? AND liked_user_id=?)
+        OR (user_id=? AND liked_user_id=?)
+    """, (a, b, b, a))
+
+    return cursor.fetchone() is not None
+# ----------------------------
 # SEND MESSAGE 
 # ----------------------------
 
-@app.route("/send_message", methods=["POST"])
-def send_message():
+@socketio.on("send_message")
+def handle_message(data):
+    sender_id = session.get("user_id")
 
-    if "user_id" not in session:
-        return redirect("/login")
-    
-    #sender id is set to user logged in
-    sender_id = session["user_id"]
+    if not sender_id:
+        return
 
-    #reciever id is set to requested id
-    receiver_id = request.form["receiver_id"]
-
-    #Message
-    message = request.form["message"]
+    if not is_match(sender_id, data["receiver_id"]):
+        return
 
     conn = sqlite3.connect("database.db")
     cursor = conn.cursor()
 
-    #insert sender_id, receiver_id, and message into message table 
     cursor.execute("""
         INSERT INTO messages (sender_id, receiver_id, message)
-        VALUES (?,?,?)
-                   """, (sender_id, receiver_id, message))
-    
+        VALUES (?, ?, ?)
+    """, (sender_id, data["receiver_id"], data["message"]))
+
     conn.commit()
     conn.close()
 
-    return redirect(f"/chat/{receiver_id}")
+    room = f"chat_{min(sender_id, data['receiver_id'])}_{max(sender_id, data['receiver_id'])}"
+
+    emit("receive_message", {
+        "sender_id": sender_id,
+        "message": data["message"],
+        "timestamp": datetime.now().strftime("%b %d, %H:%M")
+    }, room=room)
 # ----------------------------
 # JOIN ROOM EVENT
 # ----------------------------
@@ -342,42 +360,6 @@ def on_join(data):
     room = data["room"]
     join_room(room)
 
-# ----------------------------
-# SEND MESSAGES INSTANTLY
-# ----------------------------
-@socketio.on("send_message")
-def handle_message(data):
-    sender_id = session.get("user_id")
-
-    if not sender_id:
-        return
-    
-    if not is_match(sender_id, data["receiver_id"]):
-        return
-    conn = sqlite3.connect("database.db")
-    cursor = conn.cursor()
-
-    #Save messages to DB
-    cursor.execute("""
-    INSERT INTO messages (sender_id, receiver_id, message)
-    VALUES (?, ?, ?)
-""", (sender_id, data["receiver_id"], data["message"]))
-
-    conn.commit()
-    conn.close()    
-
-    #Sends only to two users 
-    room = f"chat_{min(sender_id, data['receiver_id'])}_{max(sender_id, data['receiver_id'])}"
-
-    emit("receive_message", {
-        "sender_id": sender_id,
-        "message": data["message"]
-}, room=room)
-    
-    return render_template("chat.html", user_id=user_id, current_user=session["user_id"])
-    
-
-
 
 # ----------------------------
 # CHAT PAGE
@@ -386,7 +368,7 @@ def handle_message(data):
 @app.route("/chat/<int:user_id>")
 def chat(user_id):
     if "user_id" not in session:
-        return redirect["user_id"]
+        return redirect("/login")
     
     current_user = session["user_id"]
 
@@ -395,7 +377,7 @@ def chat(user_id):
 
     cursor.execute("""
         SELECT * FROM messages
-        WHERE (sender_id =? AND reciever_id=?)
+        WHERE (sender_id =? AND receiver_id=?)
         OR (sender_id =? AND receiver_id=?)
         ORDER BY timestamp
                    """, (current_user, user_id, user_id, current_user))
@@ -405,11 +387,83 @@ def chat(user_id):
 
     return render_template(
     "chat.html",
-    data={
-        "current_user": session["user_id"],
-        "user_id": user_id
-    }
+    messages=messages,
+    current_user=session["user_id"],
+    user_id=user_id
 )
+
+
+# ----------------------------
+# START TYPING
+# ----------------------------
+@socketio.on("typing")
+def handle_typing(data):
+    room = data["room"]
+    emit("show_typing", {"user_id": session.get("user_id")}, room=room, include_self=False)
+
+# ----------------------------
+# STOP TYPING
+# ----------------------------
+
+@socketio.on("stop_typing")
+def handle_stop_typing(data):
+    room = data["room"]
+    emit("hide_typing", room=room)
+
+
+# ----------------------------
+# INBOX
+# ----------------------------
+@app.route("/inbox")
+def inbox(): 
+    if "user_id" not in session:
+        return redirect("/login")
+    
+    user_id = session["user_id"]
+
+    conn = sqlite3.connect("database.db")
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT u.id, u.name,
+        -- last message
+        (
+            SELECT message FROM messages
+                   WHERE (sender_id = u.id AND receiver_id = ?)
+                   OR (sender_id = ? AND receiver_id = u.id)
+                   ORDER BY id DESC LIMIT 1
+                   ),
+
+                   -- last time 
+                   (
+                   SELECT timestamp FROM messages
+                   WHERE (sender_id = u.id AND receiver_id =?)
+                   OR (sender_id = ? AND receiver_id = u.id)
+                   ORDER BY id DESC LIMIT 1
+                   ),
+                    -- unread count
+        (
+            SELECT COUNT(*) FROM messages
+            WHERE receiver_id = ?
+            AND sender_id = u.id
+            AND seen = 0
+        )
+
+        FROM users u
+        WHERE u.id IN (
+            SELECT l1.user_id
+            FROM likes l1
+            JOIN likes l2
+            ON l1.user_id = l2.liked_user_id
+            AND l1.liked_user_id = l2.user_id
+            WHERE l1.user_id = ?
+        )
+    """, (user_id, user_id, user_id, user_id, user_id, user_id))
+
+    matches = cursor.fetchall()
+    conn.close()
+
+    return render_template("inbox.html", matches=matches)
 
 # ----------------------------
 # LOGOUT
@@ -424,4 +478,4 @@ def logout():
 #Runs server locally 
 if __name__ == "__main__":
     #Auto reloads and shows errors 
-    app.run(debug=True)
+    socketio.run(app, debug=True)

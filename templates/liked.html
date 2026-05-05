@@ -1,3 +1,8 @@
+{% extends "base.html" %}
+
+{% block title %}PageName{% endblock %}
+
+{% block content %}
 <h1>People You Liked</h1>
 
 {% if liked %}
@@ -10,3 +15,4 @@
 {% else %}
     <p>You haven't liked anyone yet.</p>
 {% endif %}
+{% endblock %}

@@ -1,8 +1,14 @@
 <!DOCTYPE html>
 <html>
 <head>
+    {% extends "base.html" %}
+
+{% block title %}PageName{% endblock %}
+
+{% block content %}
     <title>Login</title>
 </head>
+
 <body>
 
     <h1>Login</h1>
@@ -25,3 +31,4 @@
     <a href ="/signup"> Don't have an account? Create one</a>
 </body>
 </html>
+{% endblock %}
