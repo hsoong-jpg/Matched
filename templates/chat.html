@@ -39,7 +39,16 @@
 <div id="chat">
   {% for msg in messages %}
     <div class="message {% if msg[1] == current_user %}sent{% else %}received{% endif %}">
-      {{ msg[3] }}
+      <div class="time">
+    {{ msg[3] }}
+    {% if msg[0] == current_user %}
+        {% if msg[4] == 1 %}
+            ✔✔
+        {% else %}
+            ✔
+        {% endif %}
+    {% endif %}
+</div>
     </div>
   {% endfor %}
 </div>
@@ -60,6 +69,11 @@ const user2 = Number("{{ user_id }}");
 const room = "chat_" + Math.min(user1, user2) + "_" + Math.max(user1, user2);
 
 socket.emit("join", { room: room });
+
+//Marks messages as seen
+socket.emit("mark_seen", {
+    sender_id: user2
+});
 
 /* SCROLL */
 function scrollToBottom() {
