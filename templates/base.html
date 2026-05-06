@@ -47,13 +47,15 @@
     <!-- NAVBAR -->
     <div class="navbar">
         <div><b>Matched 🎾</b></div>
-
+{% if session.get("user_id") %}
         <div class="nav-links">
             <a href="/">Home</a>
             <a href="/matches">Matches</a>
             <a href="/inbox">Inbox</a>
+            <a href="/profile">Profile</a>
             <a href="/logout">Logout</a>
         </div>
+        {% endif %}
     </div>
 
     <!-- PAGE CONTENT -->

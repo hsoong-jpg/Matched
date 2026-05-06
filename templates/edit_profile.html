@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h2>Edit Profile</h2>
+
+<form method="POST" class="card">
+
+    <label>Name</label>
+    <input name="name" value="{{ user[0] }}">
+
+    <label>Bio</label>
+    <input name="bio" value="{{ user[1] }}">
+
+    <label>Gender</label>
+    <input name="gender" value="{{ user[2] }}">
+
+    <label>Looking For</label>
+    <input name="looking_for" value="{{ user[3] }}">
+
+    <label>UTR (1–10)</label>
+    <input type="number" name="UTR" min="1" max="10" value="{{ user[4] }}">
+
+    <button type="submit">Save</button>
+
+</form>
+
+{% endblock %}

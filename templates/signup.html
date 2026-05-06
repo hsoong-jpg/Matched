@@ -1,62 +1,47 @@
-<!DOCTYPE html>
-<html>
-<head>
-  {% extends "base.html" %}
+{% extends "base.html" %}
 
-{% block title %}PageName{% endblock %}
+{% block title %}Sign Up{% endblock %}
 
 {% block content %}
-    <title>Sign Up</title>
-</head>
-<body>
 
-    <h1>Create Account</h1>
-    <!-- sends data to /signup using POST-->
-    <form method="POST">
+<h1>Create Account</h1>
 
-    <input type="text" name="name" placeholder="Name">
+<form method="POST">
 
-    <input type="text" name="bio" placeholder="Bio">
+    <input type="text" name="name" placeholder="Name" required><br><br>
 
-    <input type="text" name="username" placeholder="Username">
+    <input type="text" name="bio" placeholder="Bio"><br><br>
 
-    <input type="password" name="password" placeholder="Password">
+    <input type="text" name="username" placeholder="Username" required><br><br>
 
-      <!-- Gender -->
-  <div>
-    <label>Gender (optional)</label><br>
+    <input type="password" name="password" placeholder="Password" required><br><br>
 
-    <input type="radio" name="gender" value="Male"> Male<br>
+    <!-- Gender (REQUIRED) -->
+    <label>Gender</label><br>
+
+    <input type="radio" name="gender" value="Male" required> Male<br>
     <input type="radio" name="gender" value="Female"> Female<br>
     <input type="radio" name="gender" value="Other"> Other<br>
-    <input type="radio" name="gender" value="Prefer not to say"> Prefer not to say<br>
-  </div>
 
-  <br>
+    <br>
 
-  <!-- Looking For -->
-  <div>
+    <!-- Looking For -->
     <label>What are you looking for?</label><br>
 
-    <input type="checkbox" name="looking_for" value="Competitive Singles">
-    Competitive Singles<br>
+    <input type="checkbox" name="looking_for" value="Competitive Singles"> Competitive Singles<br>
+    <input type="checkbox" name="looking_for" value="Competitive Doubles"> Competitive Doubles<br>
+    <input type="checkbox" name="looking_for" value="Casual Hitting"> Casual Hitting<br>
 
-    <input type="checkbox" name="looking_for" value="Competitive Doubles">
-    Competitive Doubles<br>
+    <br>
 
-    <input type="checkbox" name="looking_for" value="Casual Hitting">
-    Casual Hitting<br>
-  </div>
-
-  <br>
-
+    <!-- UTR -->
+    <input type="number" step="0.1" name="UTR" placeholder="UTR (e.g. 7.5)">
 
     <button type="submit">Sign Up</button>
 
 </form>
 
-    <a href="/login">Already have an account? Login</a>
+<br>
+<a href="/login">Already have an account? Login</a>
 
-</body>
-</html>
 {% endblock %}

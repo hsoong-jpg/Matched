@@ -18,31 +18,27 @@ def inbox():
     cursor = conn.cursor()
 
     cursor.execute("""
-        SELECT 
-            u.id,
-            u.name,
+    SELECT u.id, u.name,
 
-            COALESCE((
-                SELECT message 
-                FROM messages
-                WHERE (sender_id = u.id AND receiver_id = ?)
-                   OR (sender_id = ? AND receiver_id = u.id)
-                ORDER BY id DESC
-                LIMIT 1
-            ), '') AS last_message,
+    COALESCE((
+        SELECT message
+        FROM messages
+        WHERE (sender_id = u.id AND receiver_id = ?)
+           OR (sender_id = ? AND receiver_id = u.id)
+        ORDER BY id DESC
+        LIMIT 1
+    ), '') AS last_message
 
-            COALESCE((
-                SELECT timestamp 
-                FROM messages
-                WHERE (sender_id = u.id AND receiver_id = ?)
-                   OR (sender_id = ? AND receiver_id = u.id)
-                ORDER BY id DESC
-                LIMIT 1
-            ), '') AS last_time
-
-        FROM users u
-        WHERE u.id != ?
-    """, (user_id, user_id, user_id, user_id, user_id))
+    FROM users u
+    WHERE u.id != ?
+    AND EXISTS (
+        SELECT 1 FROM likes l1
+        JOIN likes l2
+          ON l1.user_id = l2.liked_user_id
+         AND l1.liked_user_id = l2.user_id
+        WHERE (l1.user_id = ? AND l2.user_id = u.id)
+    )
+""", (user_id, user_id, user_id, user_id))
 
     matches = cursor.fetchall()
     conn.close()

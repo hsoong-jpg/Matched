@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h2>My Profile</h2>
+
+<div class="card">
+
+    <p><strong>Name:</strong> {{ user[1] }}</p>
+    <p><strong>Bio:</strong> {{ user[2] }}</p>
+    <p><strong>Username:</strong> {{ user[3] }}</p>
+    <p><strong>Gender:</strong> {{ user[4] }}</p>
+    <p><strong>Looking for:</strong> {{ user[5] }}</p>
+    <p><strong>UTR:</strong> {{ user[6] }}</p>
+
+    <a href="/profile/edit">
+        <button>Edit Profile</button>
+    </a>
+
+</div>
+
+{% endblock %}
