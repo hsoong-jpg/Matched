@@ -37,7 +37,57 @@
         }
 
         .nav-links a:hover {
-            color: #4CAF50;
+            color: #4f46e5;
+        }
+
+        /* BUTTONS */
+        button {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 12px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 500;
+        }
+
+        .btn-primary {
+            background-color: #4f46e5;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #4338ca;
+            transform: scale(1.03);
+        }
+
+        .btn-danger {
+            background-color: #ef4444;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: #dc2626;
+            transform: scale(1.03);
+        }
+
+        .btn-secondary {
+            background-color: #e5e7eb;
+            color: #111827;
+        }
+
+        .btn-secondary:hover {
+            background-color: #d1d5db;
+            transform: scale(1.03);
+        }
+
+        /* CARD */
+        .card {
+            padding: 20px;
+            border-radius: 16px;
+            background: white;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+            margin: 10px 0;
         }
     </style>
 </head>
@@ -47,7 +97,8 @@
     <!-- NAVBAR -->
     <div class="navbar">
         <div><b>Matched 🎾</b></div>
-{% if session.get("user_id") %}
+
+        {% if session.get("user_id") %}
         <div class="nav-links">
             <a href="/">Home</a>
             <a href="/matches">Matches</a>
@@ -56,6 +107,7 @@
             <a href="/logout">Logout</a>
         </div>
         {% endif %}
+
     </div>
 
     <!-- PAGE CONTENT -->

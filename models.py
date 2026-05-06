@@ -21,7 +21,7 @@ def init_db():
         password TEXT,
         gender TEXT,
         looking_for TEXT,
-        UTR REAL
+        UTR REAL,
         location TEXT,
         max_distance REAL
         

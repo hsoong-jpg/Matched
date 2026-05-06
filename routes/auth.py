@@ -50,6 +50,10 @@ def signup():
 
     return render_template("signup.html")
 
+@swipe_bp.route("/debug-session")
+def debug_session():
+    return str(session)
+
 
 # ----------------------------
 # LOGIN

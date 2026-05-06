@@ -1,19 +1,20 @@
 {% if user %}
 
 <div class="card">
+
     <h2>{{ user[1] }}</h2>
     <p>{{ user[2] }}</p>
-    <p>UTR: {{ user[6] }}</p>
 
     <form method="POST" action="/like">
         <input type="hidden" name="liked_user_id" value="{{ user[0] }}">
-        <button type="submit">❤️ Like</button>
+        <button class="btn-primary">✅ Like</button>
     </form>
 
     <form method="POST" action="/pass">
         <input type="hidden" name="passed_user_id" value="{{ user[0] }}">
-        <button type="submit">❌ Pass</button>
+        <button class="btn-danger">❌ Pass</button>
     </form>
+
 </div>
 
 {% else %}
