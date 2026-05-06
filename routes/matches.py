@@ -1,34 +1,27 @@
-from flask import Blueprint, render_template, session, redirect, request
+from flask import Blueprint, render_template, session, redirect
 from models import get_connection
 
-swipe_bp = Blueprint("swipe", __name__)
+matches_bp = Blueprint("matches", __name__)
 
-@swipe_bp.route("/")
-def home():
+@matches_bp.route("/matches")
+def matches():
     if "user_id" not in session:
         return redirect("/login")
 
     conn = get_connection()
     cursor = conn.cursor()
 
-    cursor.execute("SELECT * FROM users WHERE id != ?", (session["user_id"],))
-    users = cursor.fetchall()
-    conn.close()
-
-    return render_template("index.html", user=users[0] if users else None)
-
-
-@swipe_bp.route("/like", methods=["POST"])
-def like():
-    conn = get_connection()
-    cursor = conn.cursor()
-
     cursor.execute("""
-        INSERT INTO likes (user_id, liked_user_id)
-        VALUES (?, ?)
-    """, (session["user_id"], request.form["liked_user_id"]))
+        SELECT users.id, users.name, users.bio
+        FROM likes l1
+        JOIN likes l2
+        ON l1.user_id = l2.liked_user_id
+        AND l1.liked_user_id = l2.user_id
+        JOIN users ON users.id = l2.user_id
+        WHERE l1.user_id = ?
+    """, (session["user_id"],))
 
-    conn.commit()
+    data = cursor.fetchall()
     conn.close()
 
-    return redirect("/")
+    return render_template("matches.html", matches=data)

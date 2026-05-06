@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, session, request
+from flask import Blueprint, render_template, session
 from flask_socketio import emit, join_room
 from datetime import datetime
 from models import get_connection
@@ -7,14 +7,14 @@ from extensions import socketio
 chat_bp = Blueprint("chat", __name__)
 
 
-# ---------- CHAT PAGE ----------
 @chat_bp.route("/chat/<int:user_id>")
 def chat(user_id):
     conn = get_connection()
     cursor = conn.cursor()
 
     cursor.execute("""
-        SELECT * FROM messages
+        SELECT sender_id, receiver_id, message, timestamp, seen
+        FROM messages
         WHERE (sender_id=? AND receiver_id=?)
         OR (sender_id=? AND receiver_id=?)
         ORDER BY timestamp
@@ -26,8 +26,7 @@ def chat(user_id):
     return render_template("chat.html", messages=messages, user_id=user_id)
 
 
-# ---------- SOCKET EVENTS ----------
-
+# SOCKET EVENTS
 @socketio.on("join")
 def join(data):
     join_room(data["room"])
@@ -45,12 +44,7 @@ def send_message(data):
     cursor.execute("""
         INSERT INTO messages (sender_id, receiver_id, message, timestamp)
         VALUES (?, ?, ?, ?)
-    """, (
-        sender,
-        data["receiver_id"],
-        data["message"],
-        datetime.now()
-    ))
+    """, (sender, data["receiver_id"], data["message"], datetime.now()))
 
     conn.commit()
     conn.close()

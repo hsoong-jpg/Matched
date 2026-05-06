@@ -11,13 +11,15 @@ def signup():
         cursor = conn.cursor()
 
         cursor.execute("""
-            INSERT INTO users (name, bio, username, password)
-            VALUES (?, ?, ?, ?)
+            INSERT INTO users (name, bio, username, password, gender, looking_for)
+            VALUES (?, ?, ?, ?, ?, ?)
         """, (
             request.form["name"],
             request.form["bio"],
             request.form["username"],
-            generate_password_hash(request.form["password"])
+            generate_password_hash(request.form["password"]),
+            request.form["gender"],
+            ",".join(request.form.getlist("looking_for"))
         ))
 
         conn.commit()
@@ -38,8 +40,8 @@ def login():
         user = cursor.fetchone()
         conn.close()
 
-        if user and check_password_hash(user["password"], request.form["password"]):
-            session["user_id"] = user["id"]
+        if user and check_password_hash(user[4], request.form["password"]):
+            session["user_id"] = user[0]
             return redirect("/")
         return "Invalid login"
 
