@@ -6,23 +6,17 @@
 
 <form method="POST" class="card">
 
-    <label>Name</label>
-    <input name="name" value="{{ user[0] }}">
-
     <label>Bio</label>
-    <input name="bio" value="{{ user[1] }}">
-
-    <label>Gender</label>
-    <input name="gender" value="{{ user[2] }}">
+    <input name="bio" value="{{ user[0] }}">
 
     <label>Looking For</label>
-    <input name="looking_for" value="{{ user[3] }}">
+    <input name="looking_for" value="{{ user[1] }}">
 
     <label>UTR (1–16.5)</label>
-    <input type="number" name="UTR" min="1" max="16.5" value="{{ user[4] }}">
+    <input type="number" name="UTR" min="1" max="16.5" value="{{ user[2] }}">
 
-       <label>Location</label><br>
-    <input type="text" name="location" value="{{ user[3] }}"><br><br>
+    <label>Location</label>
+    <input type="text" name="location" value="{{ user[3] }}">
 
     <button type="submit">Save</button>
 

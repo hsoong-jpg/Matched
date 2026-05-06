@@ -35,6 +35,12 @@ def edit_profile():
     cursor = conn.cursor()
 
     if request.method == "POST":
+
+        try:
+            utr = float(request.form.get("UTR") or 0)
+        except:
+            utr = 0
+
         cursor.execute("""
             UPDATE users
             SET bio = ?, looking_for = ?, UTR = ?, location = ?
@@ -42,7 +48,7 @@ def edit_profile():
         """, (
             request.form.get("bio"),
             ",".join(request.form.getlist("looking_for")),
-            float(request.form.get("UTR")),
+            utr,
             request.form.get("location"),
             session["user_id"]
         ))
@@ -51,7 +57,12 @@ def edit_profile():
         conn.close()
         return redirect("/profile")
 
-    cursor.execute("SELECT bio, looking_for, UTR, location FROM users WHERE id = ?", (session["user_id"],))
+    cursor.execute("""
+        SELECT bio, looking_for, UTR, location
+        FROM users
+        WHERE id = ?
+    """, (session["user_id"],))
+
     user = cursor.fetchone()
     conn.close()
 

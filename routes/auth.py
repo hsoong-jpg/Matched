@@ -12,30 +12,40 @@ auth = Blueprint("auth", __name__)
 @auth.route("/signup", methods=["GET", "POST"])
 def signup():
     if request.method == "POST":
+
+        try:
+            max_distance = float(request.form.get("max_distance"))
+        except:
+            return "Invalid distance", 400
+
+        if max_distance < 0:
+            max_distance = 0
+
         conn = get_connection()
         cursor = conn.cursor()
 
         cursor.execute("""
-    INSERT INTO users (
-        name, bio, username, password,
-        gender, looking_for, UTR,
-        location, max_distance
-    )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-""", (
-    request.form.get("name"),
-    request.form.get("bio"),
-    request.form.get("username"),
-    generate_password_hash(request.form.get("password")),
-    request.form.get("gender"),
-    ",".join(request.form.getlist("looking_for")),
-    float(request.form.get("UTR")),
-    request.form.get("location"),
-    float(request.form.get("max_distance"))
-))
+            INSERT INTO users (
+                name, bio, username, password,
+                gender, looking_for, UTR,
+                location, max_distance
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            request.form.get("name"),
+            request.form.get("bio"),
+            request.form.get("username"),
+            generate_password_hash(request.form.get("password")),
+            request.form.get("gender"),
+            ",".join(request.form.getlist("looking_for")),
+            float(request.form.get("UTR")),
+            request.form.get("location"),
+            max_distance
+        ))
 
         conn.commit()
         conn.close()
+
         return redirect("/login")
 
     return render_template("signup.html")
