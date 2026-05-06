@@ -12,14 +12,11 @@ def matches():
     cursor = conn.cursor()
 
     cursor.execute("""
-        SELECT users.id, users.name, users.bio
-        FROM likes l1
-        JOIN likes l2
-        ON l1.user_id = l2.liked_user_id
-        AND l1.liked_user_id = l2.user_id
-        JOIN users ON users.id = l2.user_id
-        WHERE l1.user_id = ?
-    """, (session["user_id"],))
+SELECT *
+FROM users
+WHERE id != ?
+AND location = ?
+""", (session["user_id"], user_location))
 
     data = cursor.fetchall()
     conn.close()

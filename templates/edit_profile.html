@@ -18,8 +18,11 @@
     <label>Looking For</label>
     <input name="looking_for" value="{{ user[3] }}">
 
-    <label>UTR (1–10)</label>
-    <input type="number" name="UTR" min="1" max="10" value="{{ user[4] }}">
+    <label>UTR (1–16.5)</label>
+    <input type="number" name="UTR" min="1" max="16.5" value="{{ user[4] }}">
+
+       <label>Location</label><br>
+    <input type="text" name="location" value="{{ user[3] }}"><br><br>
 
     <button type="submit">Save</button>
 

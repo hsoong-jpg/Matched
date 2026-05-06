@@ -11,6 +11,7 @@ def init_db():
     conn = get_connection()
     cursor = conn.cursor()
 
+#USER TABLE
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -21,9 +22,13 @@ def init_db():
         gender TEXT,
         looking_for TEXT,
         UTR REAL
+        location TEXT,
+        max_distance REAL
+        
 )
 """)
 
+#LIKED PEOPLE
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS likes (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -32,6 +37,7 @@ def init_db():
     )
     """)
 
+#MESSAGE TABLE
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS messages (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -42,6 +48,15 @@ def init_db():
         seen INTEGER DEFAULT 0
     )
     """)
+
+#PASS TABLE
+    cursor.execute("""
+CREATE TABLE IF NOT EXISTS passes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER,
+    passed_user_id INTEGER
+)
+""")
 
     conn.commit()
     conn.close()

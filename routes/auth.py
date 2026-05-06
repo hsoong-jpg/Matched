@@ -16,8 +16,12 @@ def signup():
         cursor = conn.cursor()
 
         cursor.execute("""
-    INSERT INTO users (name, bio, username, password, gender, looking_for, UTR)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO users (
+        name, bio, username, password,
+        gender, looking_for, UTR,
+        location, max_distance
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 """, (
     request.form.get("name"),
     request.form.get("bio"),
@@ -25,7 +29,9 @@ def signup():
     generate_password_hash(request.form.get("password")),
     request.form.get("gender"),
     ",".join(request.form.getlist("looking_for")),
-    float(request.form.get("UTR"))
+    float(request.form.get("UTR")),
+    request.form.get("location"),
+    float(request.form.get("max_distance"))
 ))
 
         conn.commit()

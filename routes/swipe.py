@@ -15,18 +15,33 @@ def home():
     conn = get_connection()
     cursor = conn.cursor()
 
-    cursor.execute("SELECT * FROM users WHERE id != ?", (session["user_id"],))
-    users = cursor.fetchall()
+    user_id = session["user_id"]
+
+    # get users already liked
+    cursor.execute("SELECT liked_user_id FROM likes WHERE user_id = ?", (user_id,))
+    liked = [row[0] for row in cursor.fetchall()]
+
+    # get users already passed
+    cursor.execute("SELECT passed_user_id FROM passes WHERE user_id = ?", (user_id,))
+    passed = [row[0] for row in cursor.fetchall()]
+
+    excluded = liked + passed + [user_id]
+
+    # get next available profile
+    cursor.execute("""
+        SELECT id, name, bio, username, gender, looking_for, UTR
+        FROM users
+        WHERE id NOT IN ({seq})
+        LIMIT 1
+    """.format(seq=",".join(["?"]*len(excluded))), excluded)
+
+    user = cursor.fetchone()
+
     conn.close()
 
-    index = session.get("index", 0)
+    return render_template("index.html", user=user)
 
-    # reset if out of range
-    if index >= len(users):
-        session["index"] = 0
-        return render_template("index.html", no_profiles=True)
-
-    return render_template("index.html", user=users[index])
+   
 
 
 # ----------------------------
@@ -37,16 +52,16 @@ def like():
     conn = get_connection()
     cursor = conn.cursor()
 
+    user_id = session["user_id"]
+    liked_user_id = request.form["liked_user_id"]
+
     cursor.execute("""
         INSERT INTO likes (user_id, liked_user_id)
         VALUES (?, ?)
-    """, (session["user_id"], request.form["liked_user_id"]))
+    """, (user_id, liked_user_id))
 
     conn.commit()
     conn.close()
-
-    # move to next profile
-    session["index"] = session.get("index", 0) + 1
 
     return redirect("/")
 
@@ -56,5 +71,18 @@ def like():
 # ----------------------------
 @swipe_bp.route("/pass", methods=["POST"])
 def pass_user():
-    session["index"] = session.get("index", 0) + 1
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    user_id = session["user_id"]
+    passed_user_id = request.form["passed_user_id"]
+
+    cursor.execute("""
+        INSERT INTO passes (user_id, passed_user_id)
+        VALUES (?, ?)
+    """, (user_id, passed_user_id))
+
+    conn.commit()
+    conn.close()
+
     return redirect("/")

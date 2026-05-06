@@ -1,36 +1,23 @@
-{% extends "base.html" %}
+{% if user %}
 
-{% block title %}Swipe{% endblock %}
+<div class="card">
+    <h2>{{ user[1] }}</h2>
+    <p>{{ user[2] }}</p>
+    <p>UTR: {{ user[6] }}</p>
 
-{% block content %}
+    <form method="POST" action="/like">
+        <input type="hidden" name="liked_user_id" value="{{ user[0] }}">
+        <button type="submit">❤️ Like</button>
+    </form>
 
-<div class="swipe-container">
-
-  {% if users|length == 0 %}
-    <div class="card">
-      <h2>No more profiles 🎉</h2>
-    </div>
-  {% else %}
-
-    {% for user in users %}
-      <div class="card">
-        <h2>{{ user[1] }}</h2>
-        <p>{{ user[2] }}</p>
-        <p>{{ user[3] }}</p>
-
-        <form method="POST" action="/like">
-          <input type="hidden" name="liked_user_id" value="{{ user[0] }}">
-          <button>❤️ Like</button>
-        </form>
-
-        <form method="POST" action="/pass">
-          <button>❌ Pass</button>
-        </form>
-      </div>
-    {% endfor %}
-
-  {% endif %}
-
+    <form method="POST" action="/pass">
+        <input type="hidden" name="passed_user_id" value="{{ user[0] }}">
+        <button type="submit">❌ Pass</button>
+    </form>
 </div>
 
-{% endblock %}
+{% else %}
+
+<h2>No more profiles</h2>
+
+{% endif %}
