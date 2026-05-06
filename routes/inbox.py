@@ -1,21 +1,50 @@
-@app.route("/inbox")
+from flask import Blueprint, render_template, session, redirect
+from models import get_connection
+
+inbox_bp = Blueprint("inbox", __name__)
+
+
+# ----------------------------
+# INBOX ROUTE
+# ----------------------------
+@inbox_bp.route("/inbox")
 def inbox():
     if "user_id" not in session:
         return redirect("/login")
 
     user_id = session["user_id"]
 
-    from models import get_connection
     conn = get_connection()
     cursor = conn.cursor()
 
     cursor.execute("""
-        SELECT id, name FROM users LIMIT 5
-    """)
+        SELECT 
+            u.id,
+            u.name,
+
+            COALESCE((
+                SELECT message 
+                FROM messages
+                WHERE (sender_id = u.id AND receiver_id = ?)
+                   OR (sender_id = ? AND receiver_id = u.id)
+                ORDER BY id DESC
+                LIMIT 1
+            ), '') AS last_message,
+
+            COALESCE((
+                SELECT timestamp 
+                FROM messages
+                WHERE (sender_id = u.id AND receiver_id = ?)
+                   OR (sender_id = ? AND receiver_id = u.id)
+                ORDER BY id DESC
+                LIMIT 1
+            ), '') AS last_time
+
+        FROM users u
+        WHERE u.id != ?
+    """, (user_id, user_id, user_id, user_id, user_id))
 
     matches = cursor.fetchall()
     conn.close()
-
-    print("DEBUG MATCHES:", matches)
 
     return render_template("inbox.html", matches=matches)

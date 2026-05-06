@@ -1,64 +1,36 @@
-<!DOCTYPE html>
-<html>
+{% extends "base.html" %}
 
-<!-- sets browser table title-->
-<head>
-    <title>Swipe App</title>
-
-    <!-- defines how everything looks-->
-    {% extends "base.html" %}
-
-{% block title %}PageName{% endblock %}
+{% block title %}Swipe{% endblock %}
 
 {% block content %}
-</head>
 
-<body>
+<div class="swipe-container">
 
-<!-- MAIN CONTENT -->
-{% if no_profiles == True%}
-
-<!-- EMPTY STATE -->
-<div class="card">
-    <div class="name">No more profiles</div>
-    <div class="info">You're all caught up 🎉</div>
-</div>
-
-{% else %}
-
-<!-- PROFILE CARD -->
-<div class="card">
-
-    <div class="name">
-        {{ user.name }}
+  {% if users|length == 0 %}
+    <div class="card">
+      <h2>No more profiles 🎉</h2>
     </div>
+  {% else %}
 
-    <div class="info">
-        Gender: {{ user.gender }}
-    </div>
+    {% for user in users %}
+      <div class="card">
+        <h2>{{ user[1] }}</h2>
+        <p>{{ user[2] }}</p>
+        <p>{{ user[3] }}</p>
 
-    <div class="info">
-        Bio: {{ user.bio }}
-    </div>
-
-    <div class="buttons">
-
-        <form action="/pass" method="POST">
-            <input type="hidden" name="passed_user_id" value="{{ user.id }}">
-            <button class="pass" type="submit">Pass</button>
+        <form method="POST" action="/like">
+          <input type="hidden" name="liked_user_id" value="{{ user[0] }}">
+          <button>❤️ Like</button>
         </form>
 
-        <form action="/like" method="POST">
-            <input type="hidden" name="liked_user_id" value="{{ user.id }}">
-            <button class="like" type="submit">Like</button>
+        <form method="POST" action="/pass">
+          <button>❌ Pass</button>
         </form>
+      </div>
+    {% endfor %}
 
-    </div>
+  {% endif %}
 
 </div>
 
-{% endif %}
-
-</body>
-</html>
 {% endblock %}

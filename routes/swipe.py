@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, session, redirect, request
+from flask import Blueprint, render_template, session, redirect
 from models import get_connection
 
 swipe_bp = Blueprint("swipe", __name__)
@@ -11,24 +11,8 @@ def home():
     conn = get_connection()
     cursor = conn.cursor()
 
-    cursor.execute("SELECT * FROM users WHERE id != ?", (session["user_id"],))
+    cursor.execute("SELECT id, name, bio, gender FROM users WHERE id != ?", (session["user_id"],))
     users = cursor.fetchall()
     conn.close()
 
-    return render_template("index.html", user=users[0] if users else None)
-
-
-@swipe_bp.route("/like", methods=["POST"])
-def like():
-    conn = get_connection()
-    cursor = conn.cursor()
-
-    cursor.execute("""
-        INSERT INTO likes (user_id, liked_user_id)
-        VALUES (?, ?)
-    """, (session["user_id"], request.form["liked_user_id"]))
-
-    conn.commit()
-    conn.close()
-
-    return redirect("/")
+    return render_template("index.html", users=users)

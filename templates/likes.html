@@ -1,19 +1,93 @@
 {% extends "base.html" %}
 
-{% block title %}PageName{% endblock %}
+{% block title %}Likes{% endblock %}
 
 {% block content %}
-<h1>People Who Liked You</h1>
 
-{% if likes %}
-    {% for user in likes %}
-        <div>
-            <h3>{{ user[1] }}</h3>
-            <p>{{ user[2] }}</p>
-        </div>
-    {% endfor %}
-{% else %}
-    <p>No likes yet.</p>
-{% endif %}
+<h2>People who liked you </h2>
+
+<div id="card-container">
+
+  {% for user in likes %}
+    <div class="card" data-id="{{ user[0] }}">
+      <h2>{{ user[1] }}</h2>
+      <p>{{ user[2] }}</p>
+
+      <div class="buttons">
+        <button class="pass">❌ Pass</button>
+        <button class="like">✅ Like</button>
+      </div>
+    </div>
+  {% endfor %}
+
+</div>
+
+<style>
+#card-container {
+    position: relative;
+    width: 300px;
+    margin: auto;
+}
+
+.card {
+    position: absolute;
+    width: 100%;
+    background: white;
+    border-radius: 15px;
+    padding: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    transition: 0.3s;
+}
+
+.buttons {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+}
+
+button {
+    padding: 10px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.pass { background: #ff4d4d; color: white; }
+.like { background: #4caf50; color: white; }
+</style>
+
+<script>
+let cards = document.querySelectorAll(".card");
+let index = 0;
+
+function showCard(i) {
+    cards.forEach((card, idx) => {
+        card.style.display = idx === i ? "block" : "none";
+    });
+}
+
+showCard(index);
+
+function nextCard() {
+    index++;
+    if (index < cards.length) {
+        showCard(index);
+    } else {
+        document.getElementById("card-container").innerHTML = "<h3>No more likes</h3>";
+    }
+}
+
+document.querySelectorAll(".like").forEach(btn => {
+    btn.addEventListener("click", () => {
+        nextCard();
+    });
+});
+
+document.querySelectorAll(".pass").forEach(btn => {
+    btn.addEventListener("click", () => {
+        nextCard();
+    });
+});
+</script>
 
 {% endblock %}

@@ -46,3 +46,8 @@ def login():
         return "Invalid login"
 
     return render_template("login.html")
+
+@auth.route("/logout")
+def logout():
+    session.clear()   # removes user_id + everything else
+    return redirect("/login")
