@@ -61,7 +61,7 @@ def like():
 
     try:
         cursor.execute("""
-            INSERT INTO likes (user_id, liked_user_id)
+            INSERT OR IGNORE INTO likes (user_id, liked_user_id)
             VALUES (?, ?)
         """, (user_id, liked_user_id))
 
