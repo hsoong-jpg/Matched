@@ -1,32 +1,39 @@
 {% extends "base.html" %}
 
-{% block title %}PageName{% endblock %}
+{% block title %}Matches{% endblock %}
 
 {% block content %}
+
 <h1>Your Matches 💥</h1>
-<div style="width:90%; max-width:500px; margin:auto;"></div>
+
+<div style="width:90%; max-width:500px; margin:auto;">
+
 {% if matches %}
 
     {% for match in matches %}
-        <div style="border:1px solid #ccc; padding:10px; margin:10px;">
 
-            <!-- Name -->
+        <div class="card">
+
             <h3>{{ match[1] }}</h3>
-
-            <!-- Bio -->
             <p>{{ match[2] }}</p>
 
-            <!-- Message button -->
-            <a href="/chat/{{ match[0] }}">Message</a>
+            <a href="/chat/{{ match[0] }}" class="btn btn-primary">
+                Message
+            </a>
 
         </div>
+
     {% endfor %}
 
 {% else %}
-    <p>No matches yet.</p>
+
+    <div class="card">
+        <p>No matches yet.</p>
+        <a href="/" class="btn btn-primary">Start Swiping</a>
+    </div>
+
 {% endif %}
 
-<!-- NAVIGATION -->
 </div>
-</div>
+
 {% endblock %}

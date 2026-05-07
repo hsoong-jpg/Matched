@@ -7,51 +7,70 @@ from extensions import socketio
 chat_bp = Blueprint("chat", __name__)
 
 
-@chat_bp.route("/chat/<int:user_id>")
-def chat(user_id):
-    conn = get_connection()
-    cursor = conn.cursor()
-
-    cursor.execute("""
-        SELECT sender_id, receiver_id, message, timestamp, seen
-        FROM messages
-        WHERE (sender_id=? AND receiver_id=?)
-        OR (sender_id=? AND receiver_id=?)
-        ORDER BY timestamp
-    """, (session["user_id"], user_id, user_id, session["user_id"]))
-
-    messages = cursor.fetchall()
-    conn.close()
-
-    return render_template("chat.html", messages=messages, user_id=user_id)
-
-
-# SOCKET EVENTS
-@socketio.on("join")
-def join(data):
-    join_room(data["room"])
-
-
 @socketio.on("send_message")
 def send_message(data):
+
     sender = session.get("user_id")
+
     if not sender:
         return
 
+    receiver = data.get("receiver_id")
+    message = data.get("message", "").strip()
+
+    if not receiver or not message:
+        return
+
+    if len(message) > 2000:
+        return
+
+    room = f"chat_{min(sender, receiver)}_{max(sender, receiver)}"
+
     conn = get_connection()
-    cursor = conn.cursor()
 
-    cursor.execute("""
-        INSERT INTO messages (sender_id, receiver_id, message, timestamp)
-        VALUES (?, ?, ?, ?)
-    """, (sender, data["receiver_id"], data["message"], datetime.now()))
+    try:
+        cursor = conn.cursor()
 
-    conn.commit()
-    conn.close()
+        cursor.execute("""
+            INSERT INTO messages (
+                sender_id,
+                receiver_id,
+                message,
+                timestamp
+            )
+            VALUES (?, ?, ?, ?)
+        """, (
+            sender,
+            receiver,
+            message,
+            datetime.utcnow().isoformat()
+        ))
 
-    room = f"chat_{min(sender, data['receiver_id'])}_{max(sender, data['receiver_id'])}"
+        conn.commit()
+
+    finally:
+        conn.close()
 
     emit("receive_message", {
         "sender_id": sender,
-        "message": data["message"]
+        "message": message
     }, room=room)
+
+
+
+@socketio.on("join")
+def join(data):
+
+    sender = session.get("user_id")
+
+    if not sender:
+        return
+
+    receiver = data.get("receiver_id")
+
+    if not receiver:
+        return
+
+    room = f"chat_{min(sender, receiver)}_{max(sender, receiver)}"
+
+    join_room(room)

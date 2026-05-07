@@ -1,8 +1,12 @@
 {% extends "base.html" %}
 
+{% block title %}Profile{% endblock %}
+
 {% block content %}
 
 <h2>My Profile</h2>
+
+{% if user %}
 
 <div class="card">
 
@@ -14,10 +18,18 @@
     <p><strong>UTR:</strong> {{ user[6] }}</p>
     <p><strong>Location:</strong> {{ user[7] }}</p>
 
-    <a href="/profile/edit">
-        <button>Edit Profile</button>
+    <a href="/profile/edit" class="btn btn-primary">
+        Edit Profile
     </a>
 
 </div>
+
+{% else %}
+
+<div class="card">
+    <p>Profile not found.</p>
+</div>
+
+{% endif %}
 
 {% endblock %}

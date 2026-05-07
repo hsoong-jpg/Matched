@@ -20,24 +20,45 @@ def inbox():
     cursor.execute("""
     SELECT u.id, u.name,
 
+    SELECT
+    u.id,
+    u.name,
+
     COALESCE((
         SELECT message
         FROM messages
-        WHERE (sender_id = u.id AND receiver_id = ?)
-           OR (sender_id = ? AND receiver_id = u.id)
-        ORDER BY id DESC
+        WHERE (
+            sender_id = u.id AND receiver_id = ?
+        ) OR (
+            sender_id = ? AND receiver_id = u.id
+        )
+        ORDER BY timestamp DESC
         LIMIT 1
     ), '') AS last_message
 
-    FROM users u
-    WHERE u.id != ?
-    AND EXISTS (
-        SELECT 1 FROM likes l1
-        JOIN likes l2
-          ON l1.user_id = l2.liked_user_id
-         AND l1.liked_user_id = l2.user_id
-        WHERE (l1.user_id = ? AND l2.user_id = u.id)
+FROM users u
+
+WHERE u.id != ?
+
+AND EXISTS (
+    SELECT 1
+    FROM likes l1
+    JOIN likes l2
+      ON l1.user_id = l2.liked_user_id
+     AND l1.liked_user_id = l2.user_id
+    WHERE l1.user_id = ?
+      AND l1.liked_user_id = u.id
+)
+
+ORDER BY (
+    SELECT MAX(timestamp)
+    FROM messages
+    WHERE (
+        sender_id = u.id AND receiver_id = ?
+    ) OR (
+        sender_id = ? AND receiver_id = u.id
     )
+) DESC
 """, (user_id, user_id, user_id, user_id))
 
     matches = cursor.fetchall()

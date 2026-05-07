@@ -5,20 +5,30 @@
     <h2>{{ user[1] }}</h2>
     <p>{{ user[2] }}</p>
 
-    <form method="POST" action="/like">
-        <input type="hidden" name="liked_user_id" value="{{ user[0] }}">
-        <button class="btn-primary">✅ Like</button>
-    </form>
+    <p><strong>UTR:</strong> {{ user[6] }}</p>
+    <p><strong>Location:</strong> {{ user[7] }}</p>
 
-    <form method="POST" action="/pass">
-        <input type="hidden" name="passed_user_id" value="{{ user[0] }}">
-        <button class="btn-danger">❌ Pass</button>
-    </form>
+    <div class="actions">
+
+        <form method="POST" action="/like">
+            <input type="hidden" name="liked_user_id" value="{{ user[0] }}">
+            <button type="submit" class="btn btn-primary">✅ Like</button>
+        </form>
+
+        <form method="POST" action="/pass">
+            <input type="hidden" name="passed_user_id" value="{{ user[0] }}">
+            <button type="submit" class="btn btn-danger">❌ Pass</button>
+        </form>
+
+    </div>
 
 </div>
 
 {% else %}
 
-<h2>No more profiles</h2>
+<div class="card">
+    <h2>No more profiles 🎾</h2>
+    <p>You've seen everyone for now. Check back later or adjust your preferences.</p>
+</div>
 
 {% endif %}

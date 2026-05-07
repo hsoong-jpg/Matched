@@ -16,16 +16,12 @@
 
 .chat-item {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-
+    flex-direction: column;
     padding: 14px;
     border: 1px solid #eee;
     border-radius: 10px;
-
     text-decoration: none;
     color: black;
-
     transition: 0.2s;
 }
 
@@ -33,13 +29,32 @@
     background: #f5f5f5;
 }
 
+.chat-item:focus {
+    outline: 2px solid #4f46e5;
+}
+
 .name {
     font-weight: bold;
     font-size: 16px;
 }
+
+.preview {
+    font-size: 13px;
+    color: #666;
+    margin-top: 4px;
+}
+
+.empty {
+    color: #888;
+    margin-top: 20px;
+}
 </style>
 
 <div class="inbox">
+
+  {% if matches|length == 0 %}
+      <p class="empty">No matches yet. Go swipe 🎾</p>
+  {% endif %}
 
   {% for user in matches %}
 
@@ -47,6 +62,10 @@
 
         <div class="name">
             {{ user[1] }}
+        </div>
+
+        <div class="preview">
+            {{ user[2] }}
         </div>
 
     </a>

@@ -4,66 +4,93 @@ from models import get_connection
 profile_bp = Blueprint("profile", __name__)
 
 
-# VIEW PROFILE
 @profile_bp.route("/profile")
 def profile():
+
     if "user_id" not in session:
         return redirect("/login")
 
     conn = get_connection()
-    cursor = conn.cursor()
 
-    cursor.execute("""
-        SELECT id, name, bio, username, gender, looking_for, UTR, location
-        FROM users
-        WHERE id = ?
-    """, (session["user_id"],))
+    try:
+        cursor = conn.cursor()
 
-    user = cursor.fetchone()
-    conn.close()
+        cursor.execute("""
+            SELECT
+                id,
+                name,
+                bio,
+                username,
+                gender,
+                looking_for,
+                UTR,
+                location
+            FROM users
+            WHERE id = ?
+        """, (session["user_id"],))
+
+        user = cursor.fetchone()
+
+        if not user:
+            session.clear()
+            return redirect("/login")
+
+    finally:
+        conn.close()
 
     return render_template("profile.html", user=user)
 
 
-# EDIT PROFILE
 @profile_bp.route("/profile/edit", methods=["GET", "POST"])
 def edit_profile():
+
     if "user_id" not in session:
         return redirect("/login")
 
     conn = get_connection()
-    cursor = conn.cursor()
 
-    if request.method == "POST":
+    try:
+        cursor = conn.cursor()
 
-        try:
-            utr = float(request.form.get("UTR") or 0)
-        except:
-            utr = 0
+        if request.method == "POST":
+
+            try:
+                utr = float(request.form.get("UTR") or 0)
+            except (ValueError, TypeError):
+                utr = 0
+
+            bio = request.form.get("bio", "")[:500]
+            location = request.form.get("location", "")[:100]
+
+            cursor.execute("""
+                UPDATE users
+                SET
+                    bio = ?,
+                    looking_for = ?,
+                    UTR = ?,
+                    location = ?
+                WHERE id = ?
+            """, (
+                bio,
+                ",".join(request.form.getlist("looking_for")),
+                utr,
+                location,
+                session["user_id"]
+            ))
+
+            conn.commit()
+
+            return redirect("/profile")
 
         cursor.execute("""
-            UPDATE users
-            SET bio = ?, looking_for = ?, UTR = ?, location = ?
+            SELECT bio, looking_for, UTR, location
+            FROM users
             WHERE id = ?
-        """, (
-            request.form.get("bio"),
-            ",".join(request.form.getlist("looking_for")),
-            utr,
-            request.form.get("location"),
-            session["user_id"]
-        ))
+        """, (session["user_id"],))
 
-        conn.commit()
+        user = cursor.fetchone()
+
+    finally:
         conn.close()
-        return redirect("/profile")
-
-    cursor.execute("""
-        SELECT bio, looking_for, UTR, location
-        FROM users
-        WHERE id = ?
-    """, (session["user_id"],))
-
-    user = cursor.fetchone()
-    conn.close()
 
     return render_template("edit_profile.html", user=user)

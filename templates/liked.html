@@ -1,18 +1,35 @@
 {% extends "base.html" %}
 
-{% block title %}PageName{% endblock %}
+{% block title %}Liked People{% endblock %}
 
 {% block content %}
-<h1>People You Liked</h1>
+
+<h1>People You Liked </h1>
 
 {% if liked %}
+
     {% for user in liked %}
-        <div>
+
+        <div class="card">
+
             <h3>{{ user[1] }}</h3>
             <p>{{ user[2] }}</p>
+
+            <a href="/chat/{{ user[0] }}" class="btn btn-primary">
+                Message
+            </a>
+
         </div>
+
     {% endfor %}
+
 {% else %}
-    <p>You haven't liked anyone yet.</p>
+
+    <div class="card">
+        <p>You haven't liked anyone yet.</p>
+        <a href="/" class="btn btn-primary">Start Swiping</a>
+    </div>
+
 {% endif %}
+
 {% endblock %}
