@@ -11,10 +11,8 @@
             font-family: Arial, sans-serif;
             background: #f4f6f8;
             margin: 0;
-            -webkit-font-smoothing: antialiased;
         }
 
-        /* LAYOUT */
         .container {
             width: 90%;
             max-width: 500px;
@@ -33,13 +31,11 @@
             position: sticky;
             top: 0;
             z-index: 100;
-            flex-wrap: wrap;
         }
 
         .nav-links {
             display: flex;
             gap: 10px;
-            flex-wrap: wrap;
         }
 
         .nav-links a {
@@ -48,69 +44,29 @@
             font-weight: bold;
             padding: 6px 8px;
             border-radius: 8px;
-            transition: 0.2s ease;
         }
 
         .nav-links a:hover {
-            color: #4f46e5;
             background: #eef2ff;
+            color: #4f46e5;
         }
 
-        .nav-links a.active {
+        .active {
             color: #4f46e5;
             border-bottom: 2px solid #4f46e5;
         }
 
-        .nav-links a:focus {
-            outline: 2px solid #4f46e5;
-            outline-offset: 2px;
-        }
-
-        /* BUTTON SYSTEM */
+        /* BUTTONS */
         .btn {
             padding: 10px 16px;
             border: none;
             border-radius: 12px;
-            font-size: 14px;
             cursor: pointer;
-            transition: all 0.2s ease;
-            font-weight: 500;
+            font-size: 14px;
         }
 
-        .btn:focus {
-            outline: 2px solid #4f46e5;
-            outline-offset: 2px;
-        }
-
-        .btn-primary {
-            background-color: #4f46e5;
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background-color: #4338ca;
-            transform: scale(1.03);
-        }
-
-        .btn-danger {
-            background-color: #ef4444;
-            color: white;
-        }
-
-        .btn-danger:hover {
-            background-color: #dc2626;
-            transform: scale(1.03);
-        }
-
-        .btn-secondary {
-            background-color: #e5e7eb;
-            color: #111827;
-        }
-
-        .btn-secondary:hover {
-            background-color: #d1d5db;
-            transform: scale(1.03);
-        }
+        .btn-primary { background: #4f46e5; color: white; }
+        .btn-danger { background: #ef4444; color: white; }
 
         /* CARD */
         .card {
@@ -120,57 +76,30 @@
             box-shadow: 0 8px 20px rgba(0,0,0,0.08);
             margin: 10px 0;
         }
-
-        /* MOBILE FIX */
-        @media (max-width: 600px) {
-            .navbar {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 10px;
-            }
-        }
     </style>
 </head>
 
 <body>
 
     <!-- NAVBAR -->
-    <header class="navbar">
-        <div><b>Matched 🎾</b></div>
+    {% if session.get("user_id") and request.path not in ['/login', '/signup'] %}
+    <div class="navbar">
+        <b>Matched 🎾</b>
 
-        {% if logged_in %}
-        <nav class="nav-links">
-            <a href="/"
-               class="{% if request.path == '/' %}active{% endif %}">
-                Home
-            </a>
-
-            <a href="/matches"
-               class="{% if request.path == '/matches' %}active{% endif %}">
-                Matches
-            </a>
-
-            <a href="/inbox"
-               class="{% if request.path == '/inbox' %}active{% endif %}">
-                Inbox
-            </a>
-
-            <a href="/profile"
-               class="{% if request.path == '/profile' %}active{% endif %}">
-                Profile
-            </a>
-
-            <a href="/logout">
-                Logout
-            </a>
-        </nav>
-        {% endif %}
-    </header>
+        <div class="nav-links">
+            <a href="/" class="{% if request.path == '/' %}active{% endif %}">Home</a>
+            <a href="/matches" class="{% if '/matches' in request.path %}active{% endif %}">Matches</a>
+            <a href="/inbox" class="{% if '/inbox' in request.path %}active{% endif %}">Inbox</a>
+            <a href="/profile" class="{% if '/profile' in request.path %}active{% endif %}">Profile</a>
+            <a href="/logout">Logout</a>
+        </div>
+    </div>
+    {% endif %}
 
     <!-- PAGE CONTENT -->
-    <main class="container">
+    <div class="container">
         {% block content %}{% endblock %}
-    </main>
+    </div>
 
 </body>
 </html>

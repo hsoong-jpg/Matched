@@ -17,22 +17,15 @@ def home():
     conn = get_connection()
     cursor = conn.cursor()
 
-    # Get next available profile (excluding liked/passed/self)
     cursor.execute("""
         SELECT id, name, bio, username, gender, looking_for, UTR
         FROM users
         WHERE id != ?
 
         AND id NOT IN (
-            SELECT liked_user_id
-            FROM likes
-            WHERE user_id = ?
-        )
-
-        AND id NOT IN (
-            SELECT passed_user_id
-            FROM passes
-            WHERE user_id = ?
+            SELECT liked_user_id FROM likes WHERE user_id = ?
+            UNION
+            SELECT passed_user_id FROM passes WHERE user_id = ?
         )
 
         ORDER BY RANDOM()
@@ -54,9 +47,13 @@ def like():
         return redirect("/login")
 
     user_id = session["user_id"]
-    liked_user_id = request.form.get("liked_user_id")
 
-    if not liked_user_id or int(liked_user_id) == user_id:
+    try:
+        liked_user_id = int(request.form.get("liked_user_id"))
+    except (TypeError, ValueError):
+        return redirect("/")
+
+    if liked_user_id == user_id:
         return redirect("/")
 
     conn = get_connection()
@@ -84,9 +81,13 @@ def pass_user():
         return redirect("/login")
 
     user_id = session["user_id"]
-    passed_user_id = request.form.get("passed_user_id")
 
-    if not passed_user_id or int(passed_user_id) == user_id:
+    try:
+        passed_user_id = int(request.form.get("passed_user_id"))
+    except (TypeError, ValueError):
+        return redirect("/")
+
+    if passed_user_id == user_id:
         return redirect("/")
 
     conn = get_connection()

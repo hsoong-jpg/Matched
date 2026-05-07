@@ -1,6 +1,8 @@
 from flask import Blueprint, render_template, request, redirect
 from werkzeug.security import generate_password_hash
 from models import get_connection
+from werkzeug.security import check_password_hash
+from flask import session
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -61,3 +63,32 @@ def signup():
         return redirect("/login")
 
     return render_template("signup.html")
+
+@auth_bp.route("/login", methods=["GET", "POST"])
+def login():
+
+    if request.method == "POST":
+
+        username = request.form.get("username")
+        password = request.form.get("password")
+
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute(
+            "SELECT * FROM users WHERE username=?",
+            (username,)
+        )
+
+        user = cursor.fetchone()
+        conn.close()
+
+        if user and check_password_hash(user[4], password):
+            session["user_id"] = user[0]
+            return redirect("/")
+
+        return "Invalid login", 400
+
+    return render_template("login.html")
+
+
