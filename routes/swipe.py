@@ -17,6 +17,11 @@ def home():
     conn = get_connection()
     cursor = conn.cursor()
 
+    #WHERE = dont show my own profile 
+    #AND id NOT in = dont show users liked or passed
+    #UNION = join lists of users ive liked or passed
+    #ORDER BY RANDOM = shuffle profiles 
+    #LIMIT = 1 profile on the page 
     cursor.execute("""
         SELECT id, name, bio, username, gender, looking_for, UTR
         FROM users
@@ -48,6 +53,7 @@ def like():
 
     user_id = session["user_id"]
 
+    #Get id of liked user 
     try:
         liked_user_id = int(request.form.get("liked_user_id"))
     except (TypeError, ValueError):

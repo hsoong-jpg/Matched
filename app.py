@@ -14,7 +14,7 @@ from routes.profile import profile_bp
 def create_app():
     app = Flask(__name__)
 
-    # SECURITY (you should move this to env later)
+    
     app.config["SECRET_KEY"] = "secretkey"
 
     # INIT SOCKETIO

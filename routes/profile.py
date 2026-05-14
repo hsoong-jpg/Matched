@@ -54,6 +54,7 @@ def edit_profile():
 
         if request.method == "POST":
 
+            #Gets UTR and converts to float and if invalid set it to 0
             try:
                 utr = float(request.form.get("UTR") or 0)
             except (ValueError, TypeError):
@@ -62,6 +63,7 @@ def edit_profile():
             bio = request.form.get("bio", "")[:500]
             location = request.form.get("location", "")[:100]
 
+            #Updates users table 
             cursor.execute("""
                 UPDATE users
                 SET

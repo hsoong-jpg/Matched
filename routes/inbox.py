@@ -13,6 +13,10 @@ def inbox():
     conn = get_connection()
     cursor = conn.cursor()
 
+    #select user id and name 
+    #COALESCE = if value is null repalce it with a message between the two users 
+    # DEC = newest message 
+    # only last message 
     cursor.execute("""
         SELECT
             u.id,
