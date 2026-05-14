@@ -16,6 +16,7 @@
     padding: 10px;
     background: white;
     border-radius: 12px;
+    border: 1px solid #ddd;
 }
 
 .message {
@@ -41,57 +42,52 @@
     opacity: 0.6;
     margin-top: 4px;
 }
+
+#typing {
+    font-size: 12px;
+    color: gray;
+    margin-top: 5px;
+}
 </style>
 
 <div id="chat">
 
-  {% for msg in messages %}
-
-    <div class="message {% if msg[0] == session['user_id'] %}sent{% else %}received{% endif %}">
-
-        <div>{{ msg[2] }}</div>
-
-        <div class="time">
-            {{ msg[3] }}
-
-            {% if msg[0] == session['user_id'] %}
-                {% if msg[4] == 1 %}
-                    ✔✔
-                {% else %}
-                    ✔
-                {% endif %}
-            {% endif %}
+    {% for msg in messages %}
+        <div class="message {% if msg.sender_id == user_id %}sent{% else %}received{% endif %}">
+            <div>{{ msg.message }}</div>
+            <div class="time">{{ msg.timestamp }}</div>
         </div>
-
-    </div>
-
-  {% endfor %}
+    {% endfor %}
 
 </div>
 
 <div id="typing"></div>
 
-<input id="msg" placeholder="Type message...">
-<button onclick="sendMessage()" class="btn btn-primary">Send</button>
+<input id="msg" placeholder="Type message..." autocomplete="off">
+<button onclick="sendMessage()">Send</button>
 
 <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
 
 <script>
 const socket = io();
 
-const user1 = Number("{{ session['user_id'] }}");
-const user2 = Number("{{ user_id }}");
+const userId = Number("{{ user_id }}");
+const receiverId = Number("{{ receiver_id }}");
 
-const room = "chat_" + Math.min(user1, user2) + "_" + Math.max(user1, user2);
+const room = "chat_" + Math.min(userId, receiverId) + "_" + Math.max(userId, receiverId);
 
-socket.emit("join", { room: room });
+// join room
+socket.emit("join", {
+    receiver_id: receiverId
+});
 
+// scroll helper
 function scrollToBottom() {
     const chat = document.getElementById("chat");
     chat.scrollTop = chat.scrollHeight;
 }
 
-/* SAFE MESSAGE ESCAPING */
+// escape HTML
 function escapeHtml(text) {
     return text
         .replaceAll("&", "&amp;")
@@ -99,23 +95,24 @@ function escapeHtml(text) {
         .replaceAll(">", "&gt;");
 }
 
-/* RECEIVE */
+// receive message
 socket.on("receive_message", function(data) {
 
-    const div = document.getElementById("chat");
+    const chat = document.getElementById("chat");
 
-    const isMe = data.sender_id === user1;
+    const isMe = data.sender_id === userId;
 
-    div.innerHTML += `
+    chat.innerHTML += `
         <div class="message ${isMe ? 'sent' : 'received'}">
             <div>${escapeHtml(data.message)}</div>
+            <div class="time">${data.timestamp || ""}</div>
         </div>
     `;
 
     scrollToBottom();
 });
 
-/* SEND */
+// send message
 function sendMessage() {
     const input = document.getElementById("msg");
     const msg = input.value.trim();
@@ -123,39 +120,14 @@ function sendMessage() {
     if (!msg) return;
 
     socket.emit("send_message", {
-        receiver_id: user2,
+        receiver_id: receiverId,
         message: msg
     });
-
-    socket.emit("stop_typing", { room });
 
     input.value = "";
 }
 
-/* TYPING */
-let typingTimeout;
-
-document.getElementById("msg").addEventListener("input", function() {
-
-    socket.emit("typing", { room });
-
-    clearTimeout(typingTimeout);
-
-    typingTimeout = setTimeout(() => {
-        socket.emit("stop_typing", { room });
-    }, 1000);
-});
-
-socket.on("show_typing", function(data) {
-    if (data.user_id !== user1) {
-        document.getElementById("typing").innerText = "Typing...";
-    }
-});
-
-socket.on("hide_typing", function() {
-    document.getElementById("typing").innerText = "";
-});
-
+// auto scroll on load
 window.onload = scrollToBottom;
 </script>
 
