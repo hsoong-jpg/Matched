@@ -77,8 +77,15 @@ const receiverId = Number("{{ receiver_id }}");
 const room = "chat_" + Math.min(userId, receiverId) + "_" + Math.max(userId, receiverId);
 
 // join room
-socket.emit("join", {
-    receiver_id: receiverId
+// join room AFTER socket connects
+socket.on("connect", function () {
+
+    console.log("Connected to socket");
+
+    socket.emit("join", {
+        receiver_id: receiverId
+    });
+
 });
 
 // scroll helper

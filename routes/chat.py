@@ -15,11 +15,19 @@ def chat(user_id):
     if "user_id" not in session:
         return redirect("/login")
 
+    sender_id = session["user_id"]
+
+    room = f"chat_{min(sender_id, user_id)}_{max(sender_id, user_id)}"
+
+    # auto-join via emit when page loads
+    socketio.emit("force_join", {
+        "receiver_id": user_id
+    }, namespace="/")
+
     return render_template(
         "chat.html",
-        messages=[],
         receiver_id=user_id,
-        user_id=session["user_id"]
+        user_id=sender_id
     )
 
 
@@ -27,7 +35,7 @@ def chat(user_id):
 # CONNECT (FIXED LOCATION)
 # ---------------------------
 @socketio.on("connect")
-def on_connect():
+def connect():
     user_id = session.get("user_id")
     if not user_id:
         return
